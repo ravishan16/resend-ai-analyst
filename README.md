@@ -43,7 +43,25 @@ The entire system is designed to be robust, scalable, and cost-effective, runnin
 
 -   **AI Brains:** A Large Language Model (e.g., Google Gemini) is used for the final synthesis of the trading ideas.
 
-## 4. Stretch Goals
+## 4. Local Development & Testing
+
+To test the worker locally before deploying:
+
+1.  **Start the local server:** This command simulates the Cloudflare environment on your machine.
+    ```sh
+    npx wrangler dev
+    ```
+    Alternatively, if you have `make` installed:
+    ```sh
+    make dev
+    ```
+
+2.  **Trigger the scheduled event:** In a separate terminal, run the following `curl` command. This sends a request to the local server that mimics the cron trigger, causing your `scheduled` function to execute.
+    ```sh
+    curl "http://localhost:8787/cdn-cgi/handler/scheduled"
+    ```
+
+## 5. Stretch Goals
 
 Once the MVP is complete, the following features can be added:
 

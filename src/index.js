@@ -6,7 +6,6 @@ const STOCK_UNIVERSE = [
 ];
 
 export default {
-    // This handler is triggered by the cron schedule in wrangler.toml
     async scheduled(controller, env, ctx) {
         console.log("Running daily stock analyst agent...");
         try {
@@ -20,14 +19,12 @@ export default {
 async function processAndSendDigest(env) {
     const { FINNHUB_API_KEY, RESEND_API_KEY } = env;
 
-    // 1. Get date range for the next 45 days
     const fromDate = new Date();
     const toDate = new Date();
     toDate.setDate(fromDate.getDate() + 45);
     const fromDateStr = fromDate.toISOString().split('T')[0];
     const toDateStr = toDate.toISOString().split('T')[0];
 
-    // 2. Fetch upcoming earnings from Finnhub
     const url = `https://finnhub.io/api/v1/calendar/earnings?from=${fromDateStr}&to=${toDateStr}&token=${FINNHUB_API_KEY}`;
     const response = await fetch(url);
     if (!response.ok) {
@@ -36,10 +33,9 @@ async function processAndSendDigest(env) {
     const data = await response.json();
     const earningsCalendar = data.earningsCalendar || [];
 
-    // 3. Filter for our stock universe and rank them
     const relevantEarnings = earningsCalendar
         .filter(event => STOCK_UNIVERSE.includes(event.symbol))
-        .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by closest earnings date
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const top5Opportunities = relevantEarnings.slice(0, 5);
 
@@ -48,11 +44,9 @@ async function processAndSendDigest(env) {
         return;
     }
 
-    // 4. Generate the content for the email body
     const tableRows = generateTableRows(top5Opportunities);
-
-    // 5. Send the email via Resend Broadcasts API
     const emailHtml = createEmailHtml(tableRows);
+    
     await sendBroadcast(RESEND_API_KEY, emailHtml);
 }
 
@@ -60,8 +54,7 @@ function generateTableRows(opportunities) {
     let rows = '';
     opportunities.forEach(opp => {
         const earningsDate = new Date(opp.date).toDateString();
-        // Bug Fix: Format revenue as millions, not billions.
-        const revenueEst = opp.revenueEstimate ? opp.revenueEstimate.toFixed(2) : 'N/A';
+        const revenueEst = opp.revenueEstimate ? `${opp.revenueEstimate.toFixed(2)}M` : 'N/A';
         rows += `
             <tr>
                 <td><b>${opp.symbol}</b></td>
@@ -76,7 +69,6 @@ function generateTableRows(opportunities) {
 
 function createEmailHtml(tableRows) {
     const today = new Date().toDateString();
-    // New Minimalist HTML Template
     return `
         <!DOCTYPE html>
         <html>
@@ -92,22 +84,22 @@ function createEmailHtml(tableRows) {
                 th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eaeaea; }
                 th { font-size: 14px; color: #555; }
                 td { font-size: 16px; }
-                .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #999; }
+                .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; font-size: 12px; color: #999; }
                 .footer a { color: #999; text-decoration: underline; }
             </style>
         </head>
         <body>
             <div class="wrapper">
                 <div class="container">
-                    <h1>Top 5 Earnings Plays</h1>
-                    <p>Daily digest of stocks with upcoming earnings, which may see high implied volatility.</p>
+                    <h1>Your Top 5 Earnings Plays</h1>
+                    <p>Good morning! Here is your daily digest of stocks with upcoming earnings. These are potential candidates for volatility-based options strategies.</p>
                     <table>
                         <thead>
                             <tr>
                                 <th>Symbol</th>
                                 <th>Earnings Date</th>
                                 <th>EPS Est.</th>
-                                <th>Revenue Est. (M)</th>
+                                <th>Revenue Est.</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -116,8 +108,8 @@ function createEmailHtml(tableRows) {
                     </table>
                 </div>
                 <div class="footer">
-                    <p>Not financial advice. For informational purposes only.</p>
-                    <p><a href="{{resend_unsubscribe_url}}">Unsubscribe</a></p>
+                    <p><b>Disclaimer:</b> This is not financial advice. This digest is for informational purposes only.</p>
+                    <p>No longer want these emails? <a href="{{resend_unsubscribe_url}}">Unsubscribe</a>.</p>
                 </div>
             </div>
         </body>
@@ -129,25 +121,42 @@ async function sendBroadcast(apiKey, htmlContent) {
     const today = new Date().toDateString();
     const audienceId = '085abd2c-38b7-4871-9946-b087255ec292';
 
-    const response = await fetch('https://api.resend.com/broadcasts', {
+    // Step 1: Create the broadcast as a draft
+    const createResponse = await fetch('https://api.resend.com/broadcasts', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            from: 'onboarding@resend.dev', // Using default Resend address for testing
+            from: 'newsletter@ravishankars.com',
             audience_id: audienceId,
             subject: `Your AI Stock Analyst Digest - ${today}`,
             html: htmlContent,
         }),
     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Resend API request failed: ${JSON.stringify(errorData)}`);
+    if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        throw new Error(`Resend API request to create broadcast failed: ${JSON.stringify(errorData)}`);
     }
 
-    const responseData = await response.json();
-    console.log(`Successfully created broadcast ${responseData.id} for audience ${audienceId}`);
+    const createData = await createResponse.json();
+    console.log(`Successfully created broadcast draft ${createData.id}`);
+
+    // Step 2: Send the broadcast
+    const sendResponse = await fetch(`https://api.resend.com/broadcasts/${createData.id}/send`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+        },
+    });
+
+    if (!sendResponse.ok) {
+        const errorData = await sendResponse.json();
+        throw new Error(`Resend API request to send broadcast failed: ${JSON.stringify(errorData)}`);
+    }
+
+    const sendData = await sendResponse.json();
+    console.log(`Successfully triggered send for broadcast ${sendData.id}`);
 }
