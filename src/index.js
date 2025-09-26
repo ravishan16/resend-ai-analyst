@@ -64,10 +64,20 @@ async function processAndSendDigest(env) {
 
 async function getStockUniverse(apiKey) {
     const indices = ['^GSPC', '^NDX'];
-    const promises = indices.map(index => 
-        fetch(`https://finnhub.io/api/v1/index/constituent?symbol=${index}&token=${apiKey}`)
-            .then(res => res.json())
-    );
+    console.log(`Fetching constituents for indices: ${indices.join(', ')}`);
+
+    const promises = indices.map(async (index) => {
+        const url = `https://finnhub.io/api/v1/index/constituent?symbol=${index}&token=${apiKey}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            // If response is not ok, read the body as text to see the error HTML
+            const errorText = await response.text();
+            throw new Error(`Finnhub API error for index ${index}: ${response.status} ${response.statusText}. Response: ${errorText}`);
+        }
+        
+        return response.json();
+    });
 
     const results = await Promise.all(promises);
     const symbols = new Set();
@@ -76,6 +86,10 @@ async function getStockUniverse(apiKey) {
             result.constituents.forEach(symbol => symbols.add(symbol));
         }
     });
+
+    if (symbols.size === 0) {
+        throw new Error("Failed to build stock universe. Both index fetches may have failed.");
+    }
 
     console.log(`Built stock universe with ${symbols.size} unique symbols.`);
     return symbols;
