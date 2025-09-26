@@ -1,3 +1,4 @@
+
 // A list of top tech/growth stocks to monitor (subset of NASDAQ 100 for example)
 const STOCK_UNIVERSE = [
     'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AVGO', 'COST', 'ADBE',
@@ -47,50 +48,78 @@ async function processAndSendDigest(env) {
         return;
     }
 
-    // 4. Use AI to generate the digest
-    const digestContent = generateAIDigest(top5Opportunities);
+    // 4. Generate the content for the email body
+    const tableRows = generateTableRows(top5Opportunities);
 
     // 5. Send the email via Resend Broadcasts API
-    const emailHtml = createEmailHtml(digestContent);
+    const emailHtml = createEmailHtml(tableRows);
     await sendBroadcast(RESEND_API_KEY, emailHtml);
 }
 
-function generateAIDigest(opportunities) {
-    // In a real scenario, this would call an external LLM.
-    // Here, we simulate the AI's output based on a template for reliability and speed.
-    let digest = "<h1>Top 5 Earnings Plays for the Next 45 Days</h1>";
-    digest += "<p>Here are today's top earnings volatility opportunities based on the tastytrade methodology. These stocks have upcoming earnings and may see a spike in implied volatility.</p>";
-
+function generateTableRows(opportunities) {
+    let rows = '';
     opportunities.forEach(opp => {
         const earningsDate = new Date(opp.date).toDateString();
-        digest += `
-            <h2>${opp.symbol} (Earnings on ${earningsDate})</h2>
-            <p>
-                ${opp.symbol} is reporting earnings on ${earningsDate}. This event is a prime candidate for options premium selling strategies like strangles or iron condors. Traders should watch for elevated implied volatility leading up to this date to structure potential trades.
-            </p>
-            <p><em>Hour: ${opp.hour.toUpperCase()} | EPS Estimate: ${opp.epsEstimate || 'N/A'} | Revenue Estimate: ${opp.revenueEstimate ? (opp.revenueEstimate / 1000).toFixed(2) + 'B' : 'N/A'}</em></p>
-            <hr/>
+        // Bug Fix: Format revenue as millions, not billions.
+        const revenueEst = opp.revenueEstimate ? opp.revenueEstimate.toFixed(2) : 'N/A';
+        rows += `
+            <tr>
+                <td><b>${opp.symbol}</b></td>
+                <td>${earningsDate}</td>
+                <td>${opp.epsEstimate || 'N/A'}</td>
+                <td>${revenueEst}</td>
+            </tr>
         `;
     });
-    return digest;
+    return rows;
 }
 
-function createEmailHtml(content) {
+function createEmailHtml(tableRows) {
     const today = new Date().toDateString();
+    // New Minimalist HTML Template
     return `
         <!DOCTYPE html>
         <html>
         <head>
             <title>AI Stock Analyst Digest - ${today}</title>
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                h1, h2 { color: #2c3e50; }
-                hr { border: 0; height: 1px; background: #ddd; }
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #333; background-color: #f7f7f7; margin: 0; padding: 0; }
+                .wrapper { width: 100%; table-layout: fixed; }
+                .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+                h1 { font-size: 24px; color: #2c3e50; margin-top: 0; }
+                p { margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eaeaea; }
+                th { font-size: 14px; color: #555; }
+                td { font-size: 16px; }
+                .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #999; }
+                .footer a { color: #999; text-decoration: underline; }
             </style>
         </head>
         <body>
-            ${content}
-            <p><em>Disclaimer: This is not financial advice. This digest is for informational purposes only.</em></p>
+            <div class="wrapper">
+                <div class="container">
+                    <h1>Top 5 Earnings Plays</h1>
+                    <p>Daily digest of stocks with upcoming earnings, which may see high implied volatility.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Earnings Date</th>
+                                <th>EPS Est.</th>
+                                <th>Revenue Est. (M)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="footer">
+                    <p>Not financial advice. For informational purposes only.</p>
+                    <p><a href="{{resend_unsubscribe_url}}">Unsubscribe</a></p>
+                </div>
+            </div>
         </body>
         </html>
     `;
@@ -107,7 +136,7 @@ async function sendBroadcast(apiKey, htmlContent) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            from: 'digest@ravishankars.com', // IMPORTANT: This domain must be verified in your Resend account
+            from: 'onboarding@resend.dev', // Using default Resend address for testing
             audience_id: audienceId,
             subject: `Your AI Stock Analyst Digest - ${today}`,
             html: htmlContent,
