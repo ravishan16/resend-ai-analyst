@@ -112,7 +112,7 @@ function createEmailHtml(content) {
 
     return `
         <!DOCTYPE html><html><head><title>AI Stock Analyst Digest - ${today}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;color:#333;background-color:#f9f9f9;margin:0;padding:20px;}.container{max-width:600px;margin:0 auto;background-color:#fff;padding:30px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);}.opportunity{margin-bottom:25px;padding-bottom:15px;border-bottom:1px solid #eee;}h1{font-size:28px;color:#1c2b3a;text-align:center;margin-bottom:15px;}h2{font-size:22px;color:#2c3e50;margin-bottom:10px;}h3{font-size:18px;color:#34495e;margin-top:15px;border-left:3px solid #3498db;padding-left:10px;}.ideas{background-color:#fdfdfd;border:1px solid #f0f0f0;padding:15px;border-radius:5px;}.footer{text-align:center;margin-top:30px;padding-top:20px;font-size:12px;color:#aaa;}.footer a{color:#aaa;}</style></head><body><div class="container"><h1>Your AI Stock Analyst Digest</h1><p style="text-align:center;margin-bottom:30px;">Conservative options trading ideas for upcoming earnings events.</p>${opportunitiesHtml}</div><div class="footer"><p><b>Disclaimer:</b> This is not financial advice. This digest is for informational purposes only.</p><p>No longer want these emails? <a href="{{{RESEND_UNSUBSCRIBE_URL}}}">Unsubscribe</a>.</p></div></body></html>
-    ";
+    `;
 }
 
 async function sendBroadcast(apiKey, htmlContent) {
@@ -123,7 +123,7 @@ async function sendBroadcast(apiKey, htmlContent) {
     console.log("Creating broadcast draft...");
     const { data: createData, error: createError } = await resend.broadcasts.create({
         from: 'newsletter@ravishankars.com',
-        audience_id: audienceId,
+        audienceId: audienceId,
         subject: `Your AI Stock Analyst Digest - ${today}`,
         html: htmlContent,
     });
