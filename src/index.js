@@ -70,10 +70,10 @@ async function getStockUniverse(apiKey) {
         const url = `https://finnhub.io/api/v1/index/constituent?symbol=${index}&token=${apiKey}`;
         const response = await fetch(url);
 
-        if (!response.ok) {
-            // If response is not ok, read the body as text to see the error HTML
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || !contentType.includes("application/json")) {
             const errorText = await response.text();
-            throw new Error(`Finnhub API error for index ${index}: ${response.status} ${response.statusText}. Response: ${errorText}`);
+            throw new Error(`Finnhub API did not return JSON for index ${index}. Status: ${response.status}. Response: ${errorText}`);
         }
         
         return response.json();
