@@ -72,6 +72,15 @@ const EmailTemplate = ({
                     (vol.impliedVolatility > vol.historicalVolatility30d ? 'High' : 'Normal') : 'N/A'}
                 </td>
               </tr>
+              <tr>
+                <td style="padding: 4px 0; font-weight: 500;">RSI:</td>
+                <td style="padding: 4px 0; color: ${vol.technicalIndicators?.rsi ? 
+                  (vol.technicalIndicators.rsi > 70 ? '#dc2626' : vol.technicalIndicators.rsi < 30 ? '#16a34a' : '#6b7280') : '#6b7280'};">
+                  ${vol.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
+                </td>
+                <td style="padding: 4px 0; font-weight: 500;">Options Vol:</td>
+                <td style="padding: 4px 0;">${vol.optionsVolume ? vol.optionsVolume.toLocaleString() : 'N/A'}</td>
+              </tr>
             </table>
             
             <!-- Strategies (if any) -->
@@ -146,6 +155,21 @@ const EmailTemplate = ({
               Regime: ${marketContext.marketRegime || 'Unknown'} | 
               Environment: ${getMarketDescription(marketContext)}
             </p>
+          </div>
+
+          <!-- Key Terms -->
+          <div style="margin: 24px; padding: 16px; background-color: #fefce8; border: 1px solid #fde68a; border-radius: 6px;">
+            <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #a16207;">
+              📚 Key Terms
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: #475569; line-height: 1.3;">
+              <div><strong>IV/HV:</strong> Implied vs Historical Volatility (%)</div>
+              <div><strong>Quality:</strong> Overall opportunity score (0-100)</div>
+              <div><strong>Expected Move:</strong> Projected price movement</div>
+              <div><strong>RSI:</strong> Momentum indicator (0-100)</div>
+              <div><strong>Vol Status:</strong> Current volatility level vs history</div>
+              <div><strong>Options Vol:</strong> Trading activity level</div>
+            </div>
           </div>
 
           <!-- Disclaimer -->
