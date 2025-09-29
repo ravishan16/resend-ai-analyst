@@ -6,17 +6,38 @@ on:
       - main
 
 jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    name: Smoke Test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Print Wrangler version
+        run: npx wrangler --version
+      - name: Dry-run compile
+        run: npx wrangler deploy --dry-run --outdir=./.wrangler/dry-run
+
   deploy:
     runs-on: ubuntu-latest
     name: Deploy
+    needs: smoke-test
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'npm'
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+      - name: Print Wrangler version
+        run: npx wrangler --version
       - name: Deploy
         run: npx wrangler deploy
         env:

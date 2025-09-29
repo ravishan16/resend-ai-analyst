@@ -65,6 +65,7 @@ push-secrets:
 	if [ -z "$$ALPHA_VANTAGE_API_KEY" ]; then echo "❌ ALPHA_VANTAGE_API_KEY not set in .env"; exit 1; fi && \
 	if [ -z "$$GEMINI_API_KEY" ]; then echo "❌ GEMINI_API_KEY not set in .env"; exit 1; fi && \
 	if [ -z "$$RESEND_API_KEY" ]; then echo "❌ RESEND_API_KEY not set in .env"; exit 1; fi && \
+	if [ -z "$$TRIGGER_AUTH_SECRET" ]; then echo "❌ TRIGGER_AUTH_SECRET not set in .env"; exit 1; fi && \
 	echo "✅ Environment variables validated" && \
 	echo "🔄 Pushing FINNHUB_API_KEY..." && \
 	echo "$$FINNHUB_API_KEY" | wrangler secret put FINNHUB_API_KEY && \
@@ -74,6 +75,20 @@ push-secrets:
 	echo "$$GEMINI_API_KEY" | wrangler secret put GEMINI_API_KEY && \
 	echo "🔄 Pushing RESEND_API_KEY..." && \
 	echo "$$RESEND_API_KEY" | wrangler secret put RESEND_API_KEY && \
+	echo "🔄 Pushing TRIGGER_AUTH_SECRET..." && \
+	echo "$$TRIGGER_AUTH_SECRET" | wrangler secret put TRIGGER_AUTH_SECRET && \
+	if [ -n "$$SUMMARY_EMAIL_RECIPIENT" ]; then \
+		echo "🔄 Pushing SUMMARY_EMAIL_RECIPIENT..." && \
+		echo "$$SUMMARY_EMAIL_RECIPIENT" | wrangler secret put SUMMARY_EMAIL_RECIPIENT; \
+	else \
+		echo "ℹ️  SUMMARY_EMAIL_RECIPIENT not set; skipping"; \
+	fi && \
+	if [ -n "$$SUMMARY_EMAIL_FROM" ]; then \
+		echo "🔄 Pushing SUMMARY_EMAIL_FROM..." && \
+		echo "$$SUMMARY_EMAIL_FROM" | wrangler secret put SUMMARY_EMAIL_FROM; \
+	else \
+		echo "ℹ️  SUMMARY_EMAIL_FROM not set; skipping"; \
+	fi && \
 	echo "✅ All secrets pushed successfully"
 
 verify-deployment:
@@ -85,7 +100,9 @@ verify-deployment:
 
 trigger-production:
 	@echo "🚀 Triggering production newsletter run..."
-	@curl -X POST https://options-insight.ravishankar-sivasubramaniam.workers.dev/trigger | jq '.' || echo "Manual trigger completed"
+	@export $$(cat .env 2>/dev/null | grep -v '^#' | xargs) >/dev/null 2>&1 || true; \
+	if [ -z "$$TRIGGER_AUTH_SECRET" ]; then echo "❌ TRIGGER_AUTH_SECRET not set"; exit 1; fi; \
+	curl -s -X POST -H "x-trigger-secret: $$TRIGGER_AUTH_SECRET" https://options-insight.ravishankar-sivasubramaniam.workers.dev/trigger | jq '.' || echo "Manual trigger completed"
 
 logs:
 	@echo "📋 Fetching deployment logs..."

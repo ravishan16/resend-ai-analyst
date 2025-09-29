@@ -16,14 +16,14 @@ This document outlines the product requirements for the AI Stock Analyst Newslet
 
 -   **Trigger:** The system will run automatically every weekday morning at 8:00 AM UTC.
 -   **Primary Data Source:** Finnhub API for earnings calendar and basic company data.
--   **Volatility Data Source:** Polygon.io API for options data, implied volatility, and historical volatility metrics.
+-   **Volatility Data Source:** Alpha Vantage API for quotes and historical volatility metrics, with deterministic fallback estimators when premium endpoints are unavailable.
 -   **Stock Universe:** The scan will be limited to a curated list of liquid stocks from the S&P 500 and NASDAQ 100 (defined in `src/config.js`).
 -   **Advanced Filtering:** The system will use a multi-factor scoring algorithm to identify opportunities based on:
     -   **Implied Volatility Percentile**: Prioritize stocks with IV > 50th percentile (high volatility environment)
     -   **Volatility Rank**: Current IV relative to 52-week high/low
     -   **Options Volume**: Minimum daily options volume for liquidity
     -   **Days to Earnings**: Optimal time window (7-30 days out)
-    -   **Expected Move**: Calculated from options pricing
+    -   **Expected Move**: Calculated from Alpha Vantage pricing data with documented fallback bands when premium data is locked
 -   **Output:** Top 5 highest-scoring opportunities with comprehensive volatility metrics.
 
 ### 3.2. Enhanced AI-Powered Analysis with Quantitative Foundation
@@ -64,7 +64,7 @@ This document outlines the product requirements for the AI Stock Analyst Newslet
 -   **Compute:** Cloudflare Workers (scheduled cron job) with enhanced error handling and retry logic.
 -   **Financial Data:** 
     -   **Primary:** Finnhub API for earnings calendar and company fundamentals
-    -   **Volatility Data:** Polygon.io API for options chains, implied volatility, and historical data
+    -   **Volatility Data:** Alpha Vantage API for live quotes, historical volatility, and expected move calculations with calibrated fallback estimators when premium data is inaccessible
 -   **AI Engine:** Google Gemini API with advanced prompt engineering for quantitative analysis.
 -   **Email Delivery:** Resend API with React Email templates for professional formatting.
 -   **Local Development:** Comprehensive Makefile with individual component testing capabilities.
@@ -75,7 +75,7 @@ This document outlines the product requirements for the AI Stock Analyst Newslet
 ### 5.1. Data Quality Metrics
 -   **Volatility Coverage**: Percentage of opportunities with IV > 50th percentile
 -   **Data Completeness**: Success rate of fetching required options and volatility data
--   **API Reliability**: Uptime and response time for Polygon.io and Finnhub APIs
+-   **API Reliability**: Uptime and response time for Alpha Vantage and Finnhub APIs, including fallback activation rate
 
 ### 5.2. Analysis Quality Metrics
 -   **Recommendation Distribution**: Balance of "STRONGLY CONSIDER" vs "STAY AWAY" recommendations
@@ -97,6 +97,8 @@ This document outlines the product requirements for the AI Stock Analyst Newslet
 ### 6.2. Quality Controls
 -   **POP Thresholds**: Minimum probability of profit requirements (55%+)
 -   **Volatility Filters**: Reject opportunities with insufficient volatility or liquidity
+-   **Secure Manual Trigger**: `/trigger` endpoint must require a signed shared-secret header to prevent unauthorized newsletter sends
+go-   **Run Status Notifications**: After every scheduled or manual run, email a Resend summary (status, metrics, errors) to the maintainer for operational visibility
 -   **Human Oversight**: Logging and monitoring capabilities for manual review
 
 ## 7. Future Features (Post-Enhanced MVP)
