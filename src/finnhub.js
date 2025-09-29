@@ -1,10 +1,10 @@
 import { STOCK_UNIVERSE } from './config.js';
-import { getBulkVolatilityAnalysis, calculateVolatilityScore } from './polygon.js';
+import { getBulkVolatilityAnalysis, calculateVolatilityScore, initializeRealData } from './real-volatility.js';
 
 /**
  * Enhanced earnings opportunities scanner with volatility analysis
  */
-export async function getEarningsOpportunities(finnhubApiKey, polygonApiKey) {
+export async function getEarningsOpportunities(finnhubApiKey, alphaVantageApiKey) {
     const fromDate = new Date();
     const toDate = new Date();
     toDate.setDate(fromDate.getDate() + 45);
@@ -58,18 +58,18 @@ export async function getEarningsOpportunities(finnhubApiKey, polygonApiKey) {
                 console.log(`   ${e.symbol}: ${e.date} (${daysAway} days away)`);
             });
             
-            // Create mock enhanced opportunities for testing without Polygon data
+            // Create mock enhanced opportunities for testing without Alpha Vantage data
             return allUniverseEarnings.map(event => createMockEnhancedOpportunity(event, fromDate));
         }
         
         return [];
     }
 
-    // If we have polygon API, get volatility analysis
-    if (polygonApiKey && timeWindowFiltered.length > 0) {
+    // If we have Alpha Vantage API, get volatility analysis
+    if (alphaVantageApiKey && timeWindowFiltered.length > 0) {
         try {
             const symbols = timeWindowFiltered.map(event => event.symbol);
-            const volatilityData = await getBulkVolatilityAnalysis(symbols, polygonApiKey);
+            const volatilityData = await getBulkVolatilityAnalysis(symbols, alphaVantageApiKey);
 
             // Create volatility lookup map from the object returned by getBulkVolatilityAnalysis
             const volatilityMap = new Map();
@@ -99,9 +99,9 @@ export async function getEarningsOpportunities(finnhubApiKey, polygonApiKey) {
                 return enhanced;
             });
 
-            // Filter out low-quality opportunities (more lenient for testing)
+            // Filter out low-quality opportunities (very lenient for testing with limited API data)
             const qualifiedOpportunities = enhancedOpportunities
-                .filter(opp => opp.qualityScore > 20) // Lower threshold for testing
+                .filter(opp => opp.qualityScore > 5) // Very low threshold for testing with limited data
                 .filter(opp => opp.volatilityData) // Must have volatility data
                 .sort((a, b) => b.qualityScore - a.qualityScore);
 
@@ -109,19 +109,19 @@ export async function getEarningsOpportunities(finnhubApiKey, polygonApiKey) {
 
             return qualifiedOpportunities.slice(0, 5);
         } catch (error) {
-            console.warn('⚠️  Error with Polygon API, falling back to basic data:', error.message);
+            console.warn('⚠️  Error with Alpha Vantage API, falling back to basic data:', error.message);
             // Fall back to basic earnings data without volatility
             return timeWindowFiltered.slice(0, 5).map(event => createMockEnhancedOpportunity(event, fromDate));
         }
     }
 
-    // Fallback without Polygon data
-    console.log('📊 No Polygon API key provided, using basic earnings data');
+    // Fallback without Alpha Vantage data
+    console.log('📊 No Alpha Vantage API key provided, using basic earnings data');
     return timeWindowFiltered.slice(0, 5).map(event => createMockEnhancedOpportunity(event, fromDate));
 }
 
 /**
- * Create a mock enhanced opportunity for testing when Polygon data is unavailable
+ * Create a mock enhanced opportunity for testing when Alpha Vantage data is unavailable
  */
 function createMockEnhancedOpportunity(event, fromDate) {
     const earningsDate = new Date(event.date);
@@ -153,16 +153,36 @@ function createMockEnhancedOpportunity(event, fromDate) {
  * Calculate composite quality score for an earnings opportunity
  */
 function calculateQualityScore(opportunity) {
-    let score = 0;
+    let score = 10; // Base score for having earnings data
     const weights = {
-        volatility: 40,
+        volatility: 30,
         timing: 25,
         liquidity: 20,
-        technical: 15
+        technical: 15,
+        dataAvailability: 10
     };
 
-    // Volatility score (from polygon.js)
-    score += (opportunity.volatilityScore / 100) * weights.volatility;
+    // Give base points for having volatility data at all
+    if (opportunity.volatilityData) {
+        score += weights.dataAvailability;
+        
+        // Give points for having historical volatility (even if IV is missing)
+        if (opportunity.volatilityData.historicalVolatility30d > 0) {
+            score += 5; // Bonus for having historical data
+        }
+    }
+
+    // Volatility score (from volatility analysis) - but more tolerant of low scores
+    const volatilityScore = opportunity.volatilityScore || 0;
+    if (volatilityScore > 40) {
+        score += weights.volatility;
+    } else if (volatilityScore > 20) {
+        score += weights.volatility * 0.7;
+    } else if (volatilityScore > 5) {
+        score += weights.volatility * 0.4;
+    } else {
+        score += weights.volatility * 0.2; // Even very low scores get some points
+    }
 
     // Timing score - prefer 14-21 days to earnings
     const daysToEarnings = opportunity.daysToEarnings;
@@ -170,11 +190,13 @@ function calculateQualityScore(opportunity) {
         score += weights.timing;
     } else if (daysToEarnings >= 10 && daysToEarnings <= 28) {
         score += weights.timing * 0.7;
+    } else if (daysToEarnings >= 5 && daysToEarnings <= 35) {
+        score += weights.timing * 0.4;
     } else {
-        score += weights.timing * 0.3;
+        score += weights.timing * 0.2; // Even bad timing gets some points
     }
 
-    // Liquidity score based on options volume
+    // Liquidity score based on options volume - but more tolerant
     const optionsVolume = opportunity.volatilityData?.optionsVolume || 0;
     if (optionsVolume > 10000) {
         score += weights.liquidity;
@@ -182,6 +204,8 @@ function calculateQualityScore(opportunity) {
         score += weights.liquidity * 0.7;
     } else if (optionsVolume > 1000) {
         score += weights.liquidity * 0.4;
+    } else if (optionsVolume > 0) {
+        score += weights.liquidity * 0.2; // Some volume is better than none
     }
 
     // Technical score based on RSI extremes
@@ -191,6 +215,8 @@ function calculateQualityScore(opportunity) {
             score += weights.technical; // Extreme levels good for mean reversion
         } else if (rsi > 60 || rsi < 40) {
             score += weights.technical * 0.5;
+        } else {
+            score += weights.technical * 0.2; // Any RSI data gets some points
         }
     }
 

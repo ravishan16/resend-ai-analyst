@@ -23,7 +23,7 @@ export async function sendEmailDigest(apiKey, content, marketContext) {
         const { data: createData, error: createError } = await resend.broadcasts.create({
             from: 'newsletter@ravishankars.com',
             audienceId: audienceId,
-            subject: `🎯 AI Stock Analyst Digest - ${today} (${content.length} Opportunities)`,
+            subject: `🎯 Options Insight - ${today} (${content.length} Opportunities)`,
             html: htmlContent,
         });
 

@@ -1,12 +1,6 @@
-name = "resend-ai-analyst"
+name = "options-insight"
 main = "src/index.js"
 compatibility_date = "2023-10-30"
 
 [triggers]
 crons = ["0 8 * * 1-5"]
-
-[vars]
-FINNHUB_API_KEY = "your_finnhub_api_key"
-POLYGON_API_KEY = "your_polygon_api_key"
-RESEND_API_KEY = "your_resend_api_key"
-GEMINI_API_KEY = "your_gemini_api_key"

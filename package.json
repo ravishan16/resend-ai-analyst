@@ -1,8 +1,9 @@
 {
-  "name": "resend-ai-analyst",
-  "version": "0.0.0",
+  "name": "options-insight",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "description": "Quantitative earnings opportunities newsletter with volatility analysis and systematic research automation",
   "scripts": {
     "deploy": "wrangler deploy",
     "start": "wrangler dev"

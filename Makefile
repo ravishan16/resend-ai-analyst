@@ -13,9 +13,9 @@ test-finnhub:
 	@echo "📊 Testing Finnhub earnings data..."
 	@node -r dotenv/config src/cli.js finnhub
 
-test-polygon:
-	@echo "📈 Testing Polygon.io volatility data..."
-	@node -r dotenv/config src/cli.js polygon
+test-alphavantage:
+	@echo "📈 Testing Alpha Vantage market data..."
+	@node -r dotenv/config src/cli.js alphavantage
 
 test-volatility:
 	@echo "📊 Testing volatility analysis pipeline..."
@@ -57,9 +57,35 @@ test-stock:
 	@SYMBOL=$(SYMBOL) node -r dotenv/config src/cli.js test-stock
 
 # Production deployment helpers
+push-secrets:
+	@echo "🔑 Pushing environment variables to Cloudflare..."
+	@test -f .env || (echo "❌ .env file not found" && exit 1)
+	@export $$(cat .env | grep -v '^#' | xargs) && \
+	if [ -z "$$FINNHUB_API_KEY" ]; then echo "❌ FINNHUB_API_KEY not set in .env"; exit 1; fi && \
+	if [ -z "$$ALPHA_VANTAGE_API_KEY" ]; then echo "❌ ALPHA_VANTAGE_API_KEY not set in .env"; exit 1; fi && \
+	if [ -z "$$GEMINI_API_KEY" ]; then echo "❌ GEMINI_API_KEY not set in .env"; exit 1; fi && \
+	if [ -z "$$RESEND_API_KEY" ]; then echo "❌ RESEND_API_KEY not set in .env"; exit 1; fi && \
+	echo "✅ Environment variables validated" && \
+	echo "🔄 Pushing FINNHUB_API_KEY..." && \
+	echo "$$FINNHUB_API_KEY" | wrangler secret put FINNHUB_API_KEY && \
+	echo "🔄 Pushing ALPHA_VANTAGE_API_KEY..." && \
+	echo "$$ALPHA_VANTAGE_API_KEY" | wrangler secret put ALPHA_VANTAGE_API_KEY && \
+	echo "🔄 Pushing GEMINI_API_KEY..." && \
+	echo "$$GEMINI_API_KEY" | wrangler secret put GEMINI_API_KEY && \
+	echo "🔄 Pushing RESEND_API_KEY..." && \
+	echo "$$RESEND_API_KEY" | wrangler secret put RESEND_API_KEY && \
+	echo "✅ All secrets pushed successfully"
+
 verify-deployment:
 	@echo "✅ Verifying production deployment..."
-	@curl -s https://resend-ai-analyst.ravishankars.com/health || echo "❌ Health check failed"
+	@echo "🔍 Checking health endpoint..."
+	@curl -s -f https://options-insight.ravishankar-sivasubramaniam.workers.dev/health > /dev/null && echo "✅ Health check passed" || echo "❌ Health check failed"
+	@echo "🔍 Checking API configuration..."
+	@curl -s https://options-insight.ravishankar-sivasubramaniam.workers.dev/status | jq -r 'if .ready then "✅ All API keys configured" else "❌ Missing API keys: " + ([.environment | to_entries[] | select(.value == false) | .key] | join(", ")) end' 2>/dev/null || echo "❌ Status check failed (jq required for detailed output)"
+
+trigger-production:
+	@echo "🚀 Triggering production newsletter run..."
+	@curl -X POST https://options-insight.ravishankar-sivasubramaniam.workers.dev/trigger | jq '.' || echo "Manual trigger completed"
 
 logs:
 	@echo "📋 Fetching deployment logs..."
@@ -93,7 +119,7 @@ help:
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  test-finnhub     - Test earnings data fetching"
-	@echo "  test-polygon     - Test options & volatility data"
+	@echo "  test-alphavantage - Test stock prices & volatility data"
 	@echo "  test-volatility  - Test volatility analysis"
 	@echo "  test-gemini      - Test AI analysis"
 	@echo "  test-email       - Test email template"
@@ -107,7 +133,9 @@ help:
 	@echo "  validate-keys    - Check API key validity"
 	@echo ""
 	@echo "🚀 Production:"
+	@echo "  push-secrets     - Push API keys to Cloudflare"
 	@echo "  verify-deployment - Check production health"
+	@echo "  trigger-production - Manually trigger newsletter"
 	@echo "  logs             - View deployment logs"
 
-.PHONY: dev deploy test-finnhub test-polygon test-volatility test-gemini test-email test-scoring test-pipeline test-full-run preview-email debug-run verify-deployment logs validate-keys benchmark clean install help
+.PHONY: dev deploy test-finnhub test-alphavantage test-volatility test-gemini test-email test-scoring test-pipeline test-full-run preview-email debug-run push-secrets verify-deployment trigger-production logs validate-keys benchmark clean install help
