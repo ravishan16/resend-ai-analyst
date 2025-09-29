@@ -1,4 +1,5 @@
 node_modules
 .wrangler
+# Ignore environment variables file
 .env
 .DS_Store

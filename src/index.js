@@ -1,132 +1,149 @@
-
-import { Resend } from 'resend';
-
-// A large, representative list of prominent stocks from the S&P 500 and NASDAQ 100.
-const STOCK_UNIVERSE = [
-    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BRK-B', 'JPM', 'JNJ',
-    'V', 'PG', 'MA', 'UNH', 'HD', 'DIS', 'BAC', 'PYPL', 'ADBE', 'NFLX',
-    'CRM', 'CSCO', 'PFE', 'XOM', 'T', 'INTC', 'VZ', 'ORCL', 'WMT', 'KO',
-    'PEP', 'MCD', 'COST', 'AVGO', 'QCOM', 'TXN', 'HON', 'INTU', 'AMAT', 'MU',
-    'SBUX', 'CAT', 'GS', 'IBM', 'BA', 'GE', 'MMM', 'NKE', 'AMD', 'C',
-    'UBER', 'ZM', 'SQ', 'SNAP', 'PINS', 'ETSY', 'ROKU', 'SPOT', 'TWLO', 'SNOW',
-    'U', 'RBLX', 'COIN', 'HOOD', 'PLTR', 'SOFI', 'RIVN', 'LCID', 'AFRM', 'SHOP',
-    'MRNA', 'PTON', 'GME', 'AMC'
-];
-
-// Gemini model simulation
-const gemini = {
-    async generateContent(prompt) {
-        const idea1 = `**Iron Condor:** This is a classic, risk-defined strategy for high implied volatility. You could structure an Iron Condor by selling a call credit spread above the expected price range and a put credit spread below it. The goal is for the stock to stay between your short strikes by expiration to collect the premium.`;
-        const idea2 = `**Bull Put Spread:** If you have a slightly bullish bias, you could sell a put credit spread. This involves selling a higher-strike put and buying a lower-strike put. You collect a credit upfront and profit if the stock price stays above your short strike at expiration. It's a risk-defined way to be long.`;
-        return { response: { text: () => `### Trading Idea 1
-${idea1}
-
-### Trading Idea 2
-${idea2}` } };
-    }
-};
+import { getEarningsOpportunities, getMarketContext } from './finnhub.js';
+import { generateTradingIdeas, validateAnalysis } from './gemini.js';
+import { sendEmailDigest } from './email.js';
+import { initializeRealData } from './real-volatility.js';
 
 export default {
     async scheduled(controller, env, ctx) {
-        console.log("Running AI Stock Analyst Agent...");
+        console.log("🎯 Running Options Insight Research Agent...");
         try {
             await processAndSendDigest(env);
         } catch (error) {
-            console.error("Agent failed to run:", error);
+            console.error("❌ Options Insight failed to run:", error);
+            // In production, you might want to send error notifications
         }
     },
+
+    async fetch(request, env, ctx) {
+        const url = new URL(request.url);
+        
+        // Health check endpoint
+        if (url.pathname === '/health') {
+            return new Response(JSON.stringify({
+                status: 'healthy',
+                service: 'Options Insight',
+                timestamp: new Date().toISOString(),
+                version: '1.0.0'
+            }), {
+                headers: { 'Content-Type': 'application/json' },
+                status: 200
+            });
+        }
+
+        // API status endpoint - checks if required environment variables are present
+        if (url.pathname === '/status') {
+            const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, RESEND_API_KEY, GEMINI_API_KEY } = env;
+            
+            const status = {
+                service: 'Options Insight',
+                timestamp: new Date().toISOString(),
+                environment: {
+                    FINNHUB_API_KEY: !!FINNHUB_API_KEY,
+                    ALPHA_VANTAGE_API_KEY: !!ALPHA_VANTAGE_API_KEY, 
+                    RESEND_API_KEY: !!RESEND_API_KEY,
+                    GEMINI_API_KEY: !!GEMINI_API_KEY
+                },
+                ready: !!(FINNHUB_API_KEY && ALPHA_VANTAGE_API_KEY && RESEND_API_KEY && GEMINI_API_KEY)
+            };
+
+            return new Response(JSON.stringify(status, null, 2), {
+                headers: { 'Content-Type': 'application/json' },
+                status: status.ready ? 200 : 503
+            });
+        }
+
+        // Manual trigger endpoint (for testing)
+        if (url.pathname === '/trigger' && request.method === 'POST') {
+            try {
+                await processAndSendDigest(env);
+                return new Response(JSON.stringify({
+                    success: true,
+                    message: 'Newsletter processing completed',
+                    timestamp: new Date().toISOString()
+                }), {
+                    headers: { 'Content-Type': 'application/json' },
+                    status: 200
+                });
+            } catch (error) {
+                return new Response(JSON.stringify({
+                    success: false,
+                    error: error.message,
+                    timestamp: new Date().toISOString()
+                }), {
+                    headers: { 'Content-Type': 'application/json' },
+                    status: 500
+                });
+            }
+        }
+
+        // Default response
+        return new Response('Options Insight Worker - Use /health, /status, or POST /trigger endpoints', {
+            status: 404
+        });
+    }
 };
 
 async function processAndSendDigest(env) {
-    const { FINNHUB_API_KEY, RESEND_API_KEY } = env;
+    const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, RESEND_API_KEY, GEMINI_API_KEY } = env;
 
-    const fromDate = new Date();
-    const toDate = new Date();
-    toDate.setDate(fromDate.getDate() + 45);
-    const fromDateStr = fromDate.toISOString().split('T')[0];
-    const toDateStr = toDate.toISOString().split('T')[0];
+    // Validate required API keys
+    if (!FINNHUB_API_KEY || !RESEND_API_KEY || !GEMINI_API_KEY) {
+        throw new Error('Missing required API keys (FINNHUB_API_KEY, RESEND_API_KEY, GEMINI_API_KEY)');
+    }
 
-    const url = `https://finnhub.io/api/v1/calendar/earnings?from=${fromDateStr}&to=${toDateStr}&token=${FINNHUB_API_KEY}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Finnhub API Error: ${response.statusText}`);
-    const data = await response.json();
-    const earningsCalendar = data.earningsCalendar || [];
+    // Initialize Alpha Vantage for real volatility data
+    if (ALPHA_VANTAGE_API_KEY) {
+        console.log("🔐 Initializing Alpha Vantage for market data...");
+        const alphaVantageInit = await initializeRealData(ALPHA_VANTAGE_API_KEY);
+        if (!alphaVantageInit) {
+            console.warn("⚠️  Alpha Vantage initialization failed, using fallback data");
+        } else {
+            console.log("✅ Alpha Vantage initialized successfully");
+        }
+    } else {
+        console.warn("⚠️  No Alpha Vantage API key provided, using fallback data");
+    }
 
-    const stockUniverseSet = new Set(STOCK_UNIVERSE);
-    const relevantEarnings = earningsCalendar
-        .filter(event => stockUniverseSet.has(event.symbol))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+    console.log("📊 Step 1: Scanning earnings opportunities...");
+    const opportunities = await getEarningsOpportunities(FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY);
 
-    const top5Opportunities = relevantEarnings.slice(0, 5);
-
-    if (top5Opportunities.length === 0) {
-        console.log("No relevant earnings opportunities found in the stock universe.");
+    if (opportunities.length === 0) {
+        console.log("ℹ️  No qualifying earnings opportunities found today.");
         return;
     }
 
-    const emailContent = await generateDigestWithGemini(top5Opportunities);
-    const emailHtml = createEmailHtml(emailContent);
+    console.log(`✅ Found ${opportunities.length} qualified opportunities`);
+
+    console.log("🌍 Step 2: Getting market context...");
+    const marketContext = await getMarketContext(FINNHUB_API_KEY);
+    console.log(`✅ Market context - VIX: ${marketContext.vix?.toFixed(1)}, Regime: ${marketContext.marketRegime}`);
+
+    console.log("🤖 Step 3: Generating AI analysis...");
+    const emailContent = await generateTradingIdeas(GEMINI_API_KEY, opportunities, marketContext);
+
+    // Validate analyses and filter out poor quality ones
+    const validatedContent = emailContent.filter(item => {
+        const validation = validateAnalysis(item.analysis);
+        if (!validation.isValid) {
+            console.warn(`⚠️  Filtering out ${item.opportunity.symbol} due to: ${validation.issues.join(', ')}`);
+            return false;
+        }
+        return true;
+    });
+
+    if (validatedContent.length === 0) {
+        console.log("ℹ️  No analyses passed validation - newsletter will not be sent");
+        return;
+    }
+
+    console.log(`✅ Generated ${validatedContent.length} validated analyses`);
+
+    console.log("📧 Step 4: Sending newsletter...");
+    const result = await sendEmailDigest(RESEND_API_KEY, validatedContent, marketContext);
     
-    await sendBroadcast(RESEND_API_KEY, emailHtml);
-}
-
-async function generateDigestWithGemini(opportunities) {
-    let content = [];
-    for (const opp of opportunities) {
-        const prompt = `You are a conservative financial analyst...`; // Prompt remains the same
-        const result = await gemini.generateContent(prompt);
-        const tradingIdeas = result.response.text();
-        content.push({ opportunity: opp, ideas: tradingIdeas });
-    }
-    return content;
-}
-
-function createEmailHtml(content) {
-    const today = new Date().toDateString();
-    let opportunitiesHtml = '';
-    content.forEach(item => {
-        const opp = item.opportunity;
-        const earningsDate = new Date(opp.date).toDateString();
-        opportunitiesHtml += `
-            <div class="opportunity">
-                <h2>${opp.symbol} (Earnings: ${earningsDate})</h2>
-                <p><b>EPS Estimate:</b> ${opp.epsEstimate || 'N/A'}</p>
-                <div class="ideas">
-                    ${item.ideas.replace(/### (.*)/g, '<h3>$1</h3>').replace(/\n/g, '<br/>')}
-                </div>
-            </div>
-        `;
-    });
-
-    return `
-        <!DOCTYPE html><html><head>...</head><body>...</body></html>
-    `; // The full HTML is omitted for brevity but is the same as before
-}
-
-async function sendBroadcast(apiKey, htmlContent) {
-    const today = new Date().toDateString();
-    const audienceId = '085abd2c-38b7-4871-9946-b087255ec292';
-    const resend = new Resend(apiKey);
-
-    console.log("Creating broadcast draft...");
-    const { data: createData, error: createError } = await resend.broadcasts.create({
-        from: 'newsletter@ravishankars.com',
-        audienceId: audienceId,
-        subject: `Your AI Stock Analyst Digest - ${today}`,
-        html: htmlContent,
-    });
-
-    if (createError) {
-        throw new Error(`Resend API (create) failed: ${JSON.stringify(createError)}`);
-    }
-
-    console.log(`Successfully created broadcast draft ${createData.id}. Sending...`);
-
-    const { data: sendData, error: sendError } = await resend.broadcasts.send(createData.id);
-
-    if (sendError) {
-        throw new Error(`Resend API (send) failed: ${JSON.stringify(sendError)}`);
-    }
-
-    console.log(`Successfully triggered send for broadcast ${sendData.id}`);
+    console.log(`🎉 Newsletter sent successfully!`);
+    console.log(`   📊 Opportunities analyzed: ${opportunities.length}`);
+    console.log(`   ✅ Analyses passed validation: ${validatedContent.length}`);
+    console.log(`   📧 Broadcast ID: ${result.broadcastId}`);
+    console.log(`   🕒 Completed at: ${result.timestamp}`);
 }

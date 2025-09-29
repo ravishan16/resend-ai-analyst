@@ -1,69 +1,232 @@
-# AI Stock Analyst Newsletter
+# Options Insight
 
-## 1. The Problem
+## 1. The Origin Story
 
-Retail options traders, particularly those following methodologies like tastytrade's, constantly hunt for opportunities based on market volatility. A primary source of predictable volatility is a company's upcoming earnings announcement, which often leads to a spike in a stock's Implied Volatility (IV).
+After several years of trading options and following resources like Tasty Trade, my friends and I formed a small trading group where we regularly discuss options plays. Over time, we developed a consistent but manual workflow: scan for earnings opportunities, analyze volatility metrics, and then turn to ChatGPT or Gemini for additional market insights and strategy validation.
 
-Identifying these "earnings plays" is a manual and time-consuming process. It requires a trader to:
--   Scan hundreds of stocks daily.
--   Keep track of the earnings calendar for each one.
--   Filter for opportunities within a specific timeframe (e.g., the next 45 days).
--   Stay updated on market news to understand the context.
+This process worked, but it was time-consuming and inconsistent. **Options Insight** was born from the desire to automate this exact workflow - not to replace our judgment, but to systematically execute the research process we were already doing manually. The goal is simple: take our proven approach and make it scalable, consistent, and continuously improving.
 
-This manual effort is a significant barrier and means many potential opportunities are missed.
+This isn't about creating another generic "AI trading bot." It's about codifying the systematic research process that serious options traders already follow, then iterating to make it better over time.
 
-## 2. The Solution (MVP)
+## 2. The Problem
 
-This project is an autonomous AI agent that solves this problem by delivering a daily "Earnings Play" newsletter.
+Retail options traders need more than basic trading ideas - they need quantitative analysis that includes volatility metrics, probability of profit calculations, and clear sentiment-driven recommendations. Most existing solutions provide generic advice without the institutional-grade data analysis necessary for consistent profitability.
 
-The agent automatically performs the analysis and delivers a concise, actionable digest with the **top 5 trading ideas** for the day. The core workflow is fully automated:
+## 3. The Solution (Enhanced MVP)
 
-1.  **Daily Scan:** Every morning, a scheduled worker scans all stocks in the NASDAQ 100 and S&P 500.
-2.  **Filter & Rank:** It identifies stocks with earnings announcements in the next 45 days and ranks them by market cap and date proximity to find the "top 5".
-3.  **AI-Powered Analysis:** The agent feeds the data for the top 5 stocks to an LLM. The AI, acting as a financial analyst, writes a brief, insightful summary for each.
-4.  **Immediate Delivery:** The final digest is immediately sent via email to all active subscribers.
+**Options Insight** is an autonomous research agent that delivers a daily "Earnings Play" newsletter with comprehensive quantitative analysis:
 
-Users can subscribe and unsubscribe through a simple web interface. The system will also handle email bounces to maintain a clean subscriber list.
+**Core Enhancements:**
+- **Volatility-Based Screening**: Uses implied volatility estimates and historical volatility analysis to identify high-opportunity trades
+- **Real Market Data**: Live stock prices and calculated volatility metrics from Alpha Vantage
+- **Sentiment Scoring**: Quantitative analysis with clear "STRONGLY CONSIDER" or "STAY AWAY" recommendations
+- **Multi-Source Data**: Combines Finnhub earnings data with Alpha Vantage market data and volatility calculations
+- **Professional Email Design**: Clean, institutional-quality presentation
 
-## 3. Architecture
+The automated research workflow:
 
-The entire system is designed to be robust, scalable, and cost-effective, running entirely on a serverless platform.
+1.  **Advanced Market Scan:** Every morning, scans curated stock universe for earnings opportunities
+2.  **Quantitative Filtering:** Uses multi-factor scoring based on IV percentile, options volume, and volatility rank
+3.  **Deep Data Analysis:** Fetches options chains, historical volatility, and technical indicators
+4.  **Quantitative Analysis:** Advanced prompts generate sentiment scores, POP calculations, and specific strategy recommendations
+5.  **Professional Newsletter Delivery:** Clean template with volatility dashboard and comprehensive analysis
 
--   **Compute & API:** **Cloudflare Workers** are used for both:
-    -   A `cron` triggered worker that runs the daily analysis and email dispatch.
-    -   An HTTP worker that handles user `subscribe` and `unsubscribe` requests.
+For detailed technical specifications, see the [Product Requirements Document (PRD.md)](PRD.md).
 
--   **Frontend:** **Cloudflare Pages** hosts the static HTML/JavaScript landing page for subscriptions.
+## 4. Project Status
 
--   **Database:** **Cloudflare D1**, a serverless SQLite database, stores the list of subscriber emails. It will also be used to manage a "do-not-send" list for bounced addresses.
+This project is an **enhanced, production-ready MVP** with comprehensive quantitative analysis capabilities:
 
--   **Financial Data:** The **Finnhub API** provides the core market data and earnings calendar.
+**✅ Implemented Features:**
+- Multi-source data integration (Finnhub + Polygon.io)
+- Volatility-based opportunity screening
+- Quantitative sentiment analysis with POP calculations
+- Professional email templates
+- Comprehensive local testing framework
+- Robust error handling and logging
 
--   **Email Delivery:** **Resend** is used for reliably delivering the daily newsletter. The system leverages Resend's **Audiences** feature for subscriber management and the **Broadcasts API** to efficiently send the digest to the entire audience at once. This is a more scalable and appropriate solution for a newsletter than sending to individual emails. The system will also be configured to receive bounce notifications to manage list hygiene.
+**🔄 Current Development Focus:**
+- Performance tracking and recommendation validation
+- Advanced technical indicator integration
+- Enhanced risk management features
 
--   **AI Brains:** A Large Language Model (e.g., Google Gemini) is used for the final synthesis of the trading ideas.
+## 5. Local Development & Testing
 
-## 4. Local Development & Testing
+### 5.1. Environment Setup
 
-To test the worker locally before deploying:
+1.  **Install dependencies:**
+## 6. Key Features
 
-1.  **Start the local server:** This command simulates the Cloudflare environment on your machine.
-    ```sh
-    npx wrangler dev
+### 6.1. Quantitative Analysis
+- **Implied Volatility Analysis**: IV percentile, volatility rank, expected move calculations
+- **Options Data Integration**: Volume, open interest, bid/ask analysis
+- **Technical Indicators**: RSI, Bollinger Bands, momentum indicators
+- **Historical Context**: 30/90-day volatility comparisons
+
+### 6.2. Enhanced Recommendations
+- **Sentiment Scoring**: 1-10 quantitative assessment of opportunity quality  
+- **Clear Recommendations**: "STRONGLY CONSIDER", "NEUTRAL", or "STAY AWAY"
+- **Strategy-Specific POP**: Calculated probability of profit for each recommended strategy
+- **Risk Assessment**: Max loss, expected profit, risk/reward ratios
+
+### 6.3. Professional Email Design
+- **Volatility Dashboard**: Market overview and VIX context
+- **Opportunity Cards**: Clean, data-rich presentation for each stock
+- **Educational Content**: Brief explanations of key concepts
+- **Mobile-Optimized**: Templates for perfect rendering
+
+## 7. Architecture Overview
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Finnhub API   │    │  Alpha Vantage   │    │   Gemini API    │
+│ (Earnings Data) │    │ (Market Data)    │    │ (Analysis)      │
+└─────────┬───────┘    └─────────┬────────┘    └─────────┬───────┘
+          │                      │                       │
+          └──────────┬───────────┴───────────────────────┘
+                     │
+        ┌────────────▼─────────────┐
+        │   Cloudflare Worker      │
+        │  ┌─────────────────────┐ │
+        │  │ Volatility Analysis │ │
+        │  │ Scoring Algorithm   │ │  
+        │  │ Research Engine     │ │
+        │  └─────────────────────┘ │
+        └────────────┬─────────────┘
+                     │
+        ┌────────────▼─────────────┐
+        │     Resend API           │
+        │  (Email Template)        │
+        └──────────────────────────┘
+```
+
+## 8. Production Deployment
+
+### 8.1. Pre-deployment Checklist
+- [ ] All API keys configured in Cloudflare Worker environment
+- [ ] Local testing completed successfully  
+- [ ] Email templates validated
+- [ ] Audience ID configured in Resend
+- [ ] Cron schedule verified (8:00 AM UTC weekdays)
+
+### 8.2. Deployment Commands
+```sh
+# Push environment variables to Cloudflare
+make push-secrets
+
+# Deploy to production
+make deploy
+
+# Verify deployment  
+make verify-deployment
+
+# Manually trigger newsletter (for testing)
+make trigger-production
+
+# Monitor logs
+make logs
+```
+
+### 8.3. Production Endpoints
+Once deployed, your worker will have these endpoints:
+
+- **`/health`** - Basic health check
+- **`/status`** - API configuration status
+- **`/trigger`** (POST) - Manually trigger newsletter processing
+
+Example usage:
+```sh
+# Check health
+curl https://your-worker.your-subdomain.workers.dev/health
+
+# Check API configuration
+curl https://your-worker.your-subdomain.workers.dev/status
+
+# Manually trigger (for testing)
+curl -X POST https://your-worker.your-subdomain.workers.dev/trigger
+```2.  **Set up environment variables:**
+    Create a `.env` file with the following keys:
+    ```bash
+    FINNHUB_API_KEY=your_finnhub_key          # Earnings calendar data
+    ALPHA_VANTAGE_API_KEY=your_alpha_key      # Stock prices & volatility data  
+    GEMINI_API_KEY=your_gemini_key           # AI analysis
+    RESEND_API_KEY=your_resend_key           # Email delivery
+    AUDIENCE_ID=your_resend_audience_id      # Email subscriber list
     ```
-    Alternatively, if you have `make` installed:
-    ```sh
-    make dev
-    ```
 
-2.  **Trigger the scheduled event:** In a separate terminal, run the following `curl` command. This sends a request to the local server that mimics the cron trigger, causing your `scheduled` function to execute.
-    ```sh
-    curl "http://localhost:8787/cdn-cgi/handler/scheduled"
-    ```
+    **⚠️ Note on API Rate Limits:**
+    - **Alpha Vantage Free Tier**: 25 calls per day - our system uses intelligent caching and fallback estimates
+    - **Finnhub Free Tier**: 60 calls per minute - generous limits for earnings data
+    - **Gemini Free Tier**: Rate limits vary - the system handles retries and fallbacks
 
-## 5. Stretch Goals
+### 5.2. Component Testing
 
-Once the MVP is complete, the following features can be added:
+Use the enhanced Makefile for comprehensive testing:
 
--   **Human-in-the-Loop Approval:** Implement a workflow where the generated digest is first saved as a `draft` in the D1 database. A notification is sent to a Slack channel with "Approve" and "Reject" buttons. A human decision then triggers the final send or cancellation.
--   **Advanced Scheduling:** Allow the approver in Slack to not only send the email but also schedule it for a specific time, leveraging Resend's scheduling feature.
+```sh
+# Test individual components
+make test-finnhub          # Test earnings data fetching
+make test-alphavantage     # Test stock prices & volatility data
+make test-volatility       # Test volatility analysis pipeline
+make test-gemini           # Test AI analysis with sample data
+make test-email            # Test email template and delivery
+make test-scoring          # Test opportunity scoring algorithm
+
+# Integration testing
+make test-pipeline         # Test complete data pipeline
+make test-full-run         # Simulate complete daily run
+
+# Development server
+make dev                   # Start local development server
+make deploy                # Deploy to Cloudflare Workers
+```
+
+### 5.3. Testing the Scheduled Worker Locally
+
+To test the complete scheduled worker functionality:
+
+1. **Start the local development server:**
+   ```sh
+   make dev
+   # Or directly with wrangler:
+   npx wrangler dev
+   ```
+
+2. **Trigger the scheduled event:** In a separate terminal, simulate the cron trigger:
+   ```sh
+   curl "http://localhost:8787/cdn-cgi/handler/scheduled"
+   ```
+
+This will execute the complete daily workflow including:
+- Scanning earnings opportunities
+- Fetching volatility data (respecting API rate limits)
+- Generating AI analyses
+- Sending the newsletter
+
+### 5.4. Manual Testing & Debugging
+
+**Test complete workflow locally:**
+```sh
+# Run the complete pipeline with debug output
+make debug-run
+
+# Test with specific stock symbols
+make test-stock SYMBOL=AAPL
+
+# Validate email template rendering
+make preview-email
+```
+
+**Test individual components:**
+```sh
+make test-finnhub          # Test earnings data fetching
+make test-alphavantage     # Test stock prices & volatility data
+make test-volatility       # Test volatility analysis pipeline
+make test-gemini           # Test AI analysis with sample data
+make test-email            # Test email template and delivery
+make test-scoring          # Test opportunity scoring algorithm
+
+# Integration testing
+make test-pipeline         # Test complete data pipeline
+make test-full-run         # Simulate complete daily run
+```

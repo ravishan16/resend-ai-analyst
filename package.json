@@ -1,7 +1,9 @@
 {
-  "name": "resend-ai-analyst",
-  "version": "0.0.0",
+  "name": "options-insight",
+  "version": "1.0.0",
   "private": true,
+  "type": "module",
+  "description": "Quantitative earnings opportunities newsletter with volatility analysis and systematic research automation",
   "scripts": {
     "deploy": "wrangler deploy",
     "start": "wrangler dev"
@@ -10,6 +12,11 @@
     "wrangler": "^4.40.2"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@react-email/components": "^0.5.5",
+    "@react-email/render": "^1.3.1",
+    "dotenv": "^17.2.2",
+    "react": "^19.1.1",
     "resend": "^6.1.0"
   }
 }
