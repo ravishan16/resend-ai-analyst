@@ -64,7 +64,7 @@ QUANTITATIVE ANALYST: Analyze this earnings opportunity. KEEP RESPONSE CONCISE.
 
 STOCK: ${opportunity.symbol} | Earnings: ${opportunity.date} (${opportunity.daysToEarnings}d)
 Price: $${vol?.currentPrice?.toFixed(2) || 'N/A'} | Expected Move: ${vol?.expectedMove ? `${((vol.expectedMove/vol.currentPrice)*100).toFixed(1)}%` : 'N/A'}
-IV: ${vol?.impliedVolatility?.toFixed(1) || 'N/A'}% | HV: ${vol?.historicalVolatility30d?.toFixed(1) || 'N/A'}% | RSI: ${vol?.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
+IV: ${vol?.impliedVolatility?.toFixed(1) || 'N/A'}% | HV: ${vol?.historicalVolatility?.toFixed(1) || 'N/A'}% | RSI: ${vol?.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
 Quality: ${opportunity.qualityScore}/100 | VIX: ${marketContext?.vix?.toFixed(1) || 'N/A'} (${marketContext?.marketRegime || 'Unknown'})
 
 RESPOND IN EXACTLY THIS FORMAT (NO EXTRA TEXT):

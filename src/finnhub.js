@@ -131,7 +131,7 @@ function createMockEnhancedOpportunity(event, fromDate) {
     const mockVolatilityData = {
         symbol: event.symbol,
         currentPrice: 150 + Math.random() * 100, // Mock price
-        historicalVolatility30d: 20 + Math.random() * 30,
+        historicalVolatility: 20 + Math.random() * 30,
         impliedVolatility: 25 + Math.random() * 25,
         expectedMove: 5 + Math.random() * 15,
         optionsVolume: Math.floor(1000 + Math.random() * 20000),
@@ -167,7 +167,7 @@ function calculateQualityScore(opportunity) {
         score += weights.dataAvailability;
         
         // Give points for having historical volatility (even if IV is missing)
-        if (opportunity.volatilityData.historicalVolatility30d > 0) {
+        if (opportunity.volatilityData.historicalVolatility > 0) {
             score += 5; // Bonus for having historical data
         }
     }

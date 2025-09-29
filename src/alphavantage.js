@@ -6,9 +6,9 @@
  */
 
 class AlphaVantageAPI {
-    constructor() {
+    constructor(apiKey = null) {
         this.baseUrl = 'https://www.alphavantage.co/query';
-        this.apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+        this.apiKey = apiKey || process.env.ALPHA_VANTAGE_API_KEY;
     }
 
     /**
@@ -128,6 +128,11 @@ class AlphaVantageAPI {
                 console.warn(`❌ No time series data for ${symbol}`);
                 console.log('Available data keys:', Object.keys(data));
                 
+                // Log the Information message if it exists (often contains rate limit info)
+                if (data['Information']) {
+                    console.log('Alpha Vantage Info:', data['Information']);
+                }
+                
                 // Try alternative data structure
                 const altTimeSeries = data['Time Series (Daily)'] || data['time_series'] || data['data'];
                 if (altTimeSeries) {
@@ -246,6 +251,9 @@ class AlphaVantageAPI {
                 note: 'IV estimated as 1.2x historical volatility (upgrade to premium for real options data)'
             };
 
+            // Calculate volatility score
+            analysis.volatilityScore = this.calculateVolatilityScore(analysis);
+
             console.log(`✅ Alpha Vantage: Analysis complete for ${symbol}`);
             console.log(`   Current Price: $${analysis.currentPrice?.toFixed(2)}`);
             console.log(`   Historical Vol: ${analysis.historicalVolatility?.toFixed(1)}%`);
@@ -281,6 +289,65 @@ class AlphaVantageAPI {
         
         console.log(`✅ Alpha Vantage bulk analysis complete`);
         return results;
+    }
+
+    /**
+     * Calculate volatility score based on various factors
+     */
+    calculateVolatilityScore(data) {
+        if (!data) return 0;
+
+        let score = 0;
+        const weights = {
+            impliedVolatility: 25,
+            historicalVolatility: 20,
+            ivRank: 20,
+            expectedMove: 15,
+            currentPrice: 10,
+            dataQuality: 10
+        };
+
+        // IV score (higher IV = higher score up to a point)
+        if (data.impliedVolatility) {
+            const iv = data.impliedVolatility;
+            if (iv >= 20 && iv <= 60) score += weights.impliedVolatility;
+            else if (iv >= 15 && iv <= 80) score += weights.impliedVolatility * 0.7;
+            else if (iv >= 10) score += weights.impliedVolatility * 0.4;
+        }
+
+        // Historical volatility (consistency factor)
+        if (data.historicalVolatility) {
+            const hv = data.historicalVolatility;
+            if (hv >= 15 && hv <= 50) score += weights.historicalVolatility;
+            else if (hv >= 10 && hv <= 70) score += weights.historicalVolatility * 0.7;
+        }
+
+        // IV Rank (percentile ranking)
+        if (data.ivRank) {
+            if (data.ivRank > 70) score += weights.ivRank;
+            else if (data.ivRank > 50) score += weights.ivRank * 0.7;
+            else if (data.ivRank > 30) score += weights.ivRank * 0.4;
+        }
+
+        // Expected move (reasonable range)
+        if (data.expectedMove && data.currentPrice) {
+            const movePercent = (data.expectedMove / data.currentPrice) * 100;
+            if (movePercent >= 3 && movePercent <= 12) score += weights.expectedMove;
+            else if (movePercent >= 2 && movePercent <= 15) score += weights.expectedMove * 0.7;
+        }
+
+        // Current price (not penny stocks, not too expensive)
+        if (data.currentPrice) {
+            if (data.currentPrice >= 20 && data.currentPrice <= 1000) score += weights.currentPrice;
+            else if (data.currentPrice >= 10) score += weights.currentPrice * 0.5;
+        }
+
+        // Data quality bonus
+        if (data.impliedVolatility && data.historicalVolatility) {
+            score += weights.dataQuality;
+        }
+
+        return Math.round(Math.max(0, Math.min(100, score)));
     }
 }
 

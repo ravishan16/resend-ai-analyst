@@ -7,21 +7,28 @@ import AlphaVantageAPI from './alphavantage.js';
 
 class RealVolatilityData {
     constructor() {
-        this.alphaVantage = new AlphaVantageAPI();
+        this.alphaVantage = null; // Initialize later with API key
         this.initialized = false;
+        this.alphaVantageApiKey = null;
     }
 
     /**
      * Initialize the Alpha Vantage API
      */
-    async initialize() {
-        // Check if API key is available
-        if (!process.env.ALPHA_VANTAGE_API_KEY || process.env.ALPHA_VANTAGE_API_KEY === 'your_alpha_vantage_api_key_here') {
+    async initialize(apiKey = null) {
+        // Check if API key is available (from parameter or environment)
+        const alphaVantageKey = apiKey || process.env.ALPHA_VANTAGE_API_KEY;
+        
+        if (!alphaVantageKey || alphaVantageKey === 'your_alpha_vantage_api_key_here') {
             console.error('❌ Alpha Vantage API key required');
             console.log('Get your free key at: https://www.alphavantage.co/support/#api-key');
             return false;
         }
 
+        // Store the API key and create Alpha Vantage instance
+        this.alphaVantageApiKey = alphaVantageKey;
+        this.alphaVantage = new AlphaVantageAPI(alphaVantageKey);
+        
         console.log('✅ Alpha Vantage API initialized');
         this.initialized = true;
         return true;
@@ -127,21 +134,31 @@ const realVolatilityData = new RealVolatilityData();
 /**
  * Initialize the real data service (call this once at startup)
  */
-export async function initializeRealData() {
-    return await realVolatilityData.initialize();
+export async function initializeRealData(apiKey = null) {
+    return await realVolatilityData.initialize(apiKey);
 }
 
 /**
  * Get volatility analysis for a single symbol (compatible interface)
  */
-export async function getVolatilityAnalysis(symbol) {
+export async function getVolatilityAnalysis(symbol, apiKey = null) {
+    // If API key is provided and not initialized yet, initialize now
+    if (apiKey && !realVolatilityData.initialized) {
+        await realVolatilityData.initialize(apiKey);
+    }
+    
     return await realVolatilityData.getVolatilityAnalysis(symbol);
 }
 
 /**
  * Get volatility analysis for multiple symbols (compatible interface)
  */
-export async function getBulkVolatilityAnalysis(symbols) {
+export async function getBulkVolatilityAnalysis(symbols, apiKey = null) {
+    // If API key is provided and not initialized yet, initialize now
+    if (apiKey && !realVolatilityData.initialized) {
+        await realVolatilityData.initialize(apiKey);
+    }
+    
     return await realVolatilityData.getBulkVolatilityAnalysis(symbols);
 }
 

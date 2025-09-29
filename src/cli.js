@@ -101,7 +101,7 @@ async function testAlphaVantage() {
         console.log(`  📊 ${symbol}:`);
         console.log(`     Current Price: $${result.currentPrice?.toFixed(2) || 'N/A'}`);
         console.log(`     IV Estimate: ${result.impliedVolatility?.toFixed(1) || 'N/A'}%`);
-        console.log(`     HV (30d): ${result.historicalVolatility30d?.toFixed(1) || 'N/A'}%`);
+        console.log(`     HV: ${result.historicalVolatility?.toFixed(1) || 'N/A'}%`);
         console.log(`     Volatility Score: ${result.volatilityScore || 'N/A'}/100`);
     });
 }
@@ -124,7 +124,7 @@ async function testVolatilityAnalysis() {
         console.log('✅ Volatility Analysis Results:');
         console.log(`  Symbol: ${symbol}`);
         console.log(`  Current Price: $${symbolData.currentPrice?.toFixed(2) || 'N/A'}`);
-        console.log(`  Historical Vol (30d): ${symbolData.historicalVolatility30d?.toFixed(1) || 'N/A'}%`);
+        console.log(`  Historical Vol: ${symbolData.historicalVolatility?.toFixed(1) || 'N/A'}%`);
         console.log(`  IV Estimate: ${symbolData.impliedVolatility?.toFixed(1) || 'N/A'}%`);
         console.log(`  Expected Move: $${symbolData.expectedMove?.toFixed(2) || 'N/A'}`);
         console.log(`  Volatility Score: ${symbolData.volatilityScore || 'N/A'}/100`);
@@ -150,7 +150,7 @@ async function testGemini() {
         volatilityData: {
             currentPrice: 150.25,
             impliedVolatility: 35.5,
-            historicalVolatility30d: 28.3,
+            historicalVolatility: 28.3,
             expectedMove: 8.75,
             optionsVolume: 15000,
             technicalIndicators: { rsi: 68.5 }
@@ -202,7 +202,7 @@ async function testEmail() {
             volatilityData: {
                 currentPrice: 150.25,
                 impliedVolatility: 35.5,
-                historicalVolatility30d: 28.3,
+                historicalVolatility: 28.3,
                 expectedMove: 8.75,
                 optionsVolume: 15000,
                 technicalIndicators: { rsi: 68.5, atr: 2.15 }
@@ -234,16 +234,16 @@ async function testScoring() {
     
     // Mock volatility data for scoring test
     const mockVolatilityData = [
-        { symbol: 'AAPL', impliedVolatility: 35, historicalVolatility30d: 28, optionsVolume: 15000, technicalIndicators: { rsi: 68 } },
-        { symbol: 'MSFT', impliedVolatility: 25, historicalVolatility30d: 22, optionsVolume: 8000, technicalIndicators: { rsi: 45 } },
-        { symbol: 'TSLA', impliedVolatility: 55, historicalVolatility30d: 65, optionsVolume: 25000, technicalIndicators: { rsi: 75 } }
+        { symbol: 'AAPL', impliedVolatility: 35, historicalVolatility: 28, optionsVolume: 15000, technicalIndicators: { rsi: 68 } },
+        { symbol: 'MSFT', impliedVolatility: 25, historicalVolatility: 22, optionsVolume: 8000, technicalIndicators: { rsi: 45 } },
+        { symbol: 'TSLA', impliedVolatility: 55, historicalVolatility: 65, optionsVolume: 25000, technicalIndicators: { rsi: 75 } }
     ];
     
     console.log('Calculating volatility scores...');
     mockVolatilityData.forEach(data => {
         const score = calculateVolatilityScore(data);
         console.log(`  📊 ${data.symbol}: ${score}/100`);
-        console.log(`     IV: ${data.impliedVolatility}% | HV: ${data.historicalVolatility30d}% | Volume: ${data.optionsVolume.toLocaleString()}`);
+        console.log(`     IV: ${data.impliedVolatility}% | HV: ${data.historicalVolatility}% | Volume: ${data.optionsVolume.toLocaleString()}`);
     });
     
     console.log('✅ Scoring algorithm test completed');
@@ -321,7 +321,7 @@ async function previewEmail() {
             volatilityData: {
                 currentPrice: 150.25,
                 impliedVolatility: 35.5,
-                historicalVolatility30d: 28.3,
+                historicalVolatility: 28.3,
                 expectedMove: 8.75,
                 optionsVolume: 15000,
                 technicalIndicators: { rsi: 68.5, atr: 2.15 }
@@ -344,7 +344,7 @@ async function previewEmail() {
             volatilityData: {
                 currentPrice: 245.80,
                 impliedVolatility: 45.2,
-                historicalVolatility30d: 52.1,
+                historicalVolatility: 52.1,
                 expectedMove: 15.30,
                 optionsVolume: 28500,
                 technicalIndicators: { rsi: 75.2, atr: 8.65 }
@@ -405,7 +405,7 @@ async function validateApiKeys() {
     
     const keys = [
         { name: 'FINNHUB_API_KEY', value: process.env.FINNHUB_API_KEY },
-        { name: 'POLYGON_API_KEY', value: process.env.POLYGON_API_KEY },
+        { name: 'ALPHA_VANTAGE_API_KEY', value: process.env.ALPHA_VANTAGE_API_KEY },
         { name: 'GEMINI_API_KEY', value: process.env.GEMINI_API_KEY },
         { name: 'RESEND_API_KEY', value: process.env.RESEND_API_KEY }
     ];
