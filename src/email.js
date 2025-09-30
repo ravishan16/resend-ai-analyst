@@ -4,13 +4,17 @@ import EmailTemplate from './email-template.js';
 /**
  * Enhanced email delivery with React Email template
  */
-export async function sendEmailDigest(apiKey, content, marketContext) {
+export async function sendEmailDigest(apiKey, audienceId, content, marketContext, options = {}) {
     try {
         console.log("Preparing enhanced email digest...");
         
         const resend = new Resend(apiKey);
         const today = new Date().toDateString();
-        const audienceId = '085abd2c-38b7-4871-9946-b087255ec292';
+        const from = options.from || 'newsletter@ravishankars.com';
+
+        if (!audienceId) {
+            throw new Error('AUDIENCE_ID is required to send the newsletter');
+        }
 
         // Generate HTML content from our template (already returns HTML string)
         const htmlContent = EmailTemplate({
@@ -21,7 +25,7 @@ export async function sendEmailDigest(apiKey, content, marketContext) {
 
         console.log("Creating broadcast draft with React Email template...");
         const { data: createData, error: createError } = await resend.broadcasts.create({
-            from: 'newsletter@ravishankars.com',
+            from,
             audienceId: audienceId,
             subject: `🎯 Options Insight - ${today} (${content.length} Opportunities)`,
             html: htmlContent,
@@ -258,4 +262,45 @@ function formatDuration(durationMs) {
     const remainder = seconds % 60;
     if (minutes === 0) return `${seconds}s`;
     return `${minutes}m ${remainder}s`;
+}
+
+export async function addSubscriberToAudience(apiKey, audienceId, email, options = {}) {
+    if (!apiKey) throw new Error('RESEND_API_KEY is required to add subscribers');
+    if (!audienceId) throw new Error('AUDIENCE_ID is required to add subscribers');
+    if (!email) throw new Error('Email is required to add subscribers');
+
+    const resend = new Resend(apiKey);
+    const payload = {
+        audienceId,
+        email: email.toLowerCase(),
+        firstName: sanitizeContactField(options.firstName),
+        lastName: sanitizeContactField(options.lastName),
+        unsubscribed: false
+    };
+
+    if (options.tags && Array.isArray(options.tags) && options.tags.length) {
+        payload.tags = options.tags.slice(0, 50);
+    }
+
+    if (options.attributes && typeof options.attributes === 'object') {
+        payload.attributes = options.attributes;
+    }
+
+    const { data, error } = await resend.contacts.create(payload);
+
+    if (error) {
+        const message = (typeof error === 'object' && error !== null) ? JSON.stringify(error) : String(error);
+        if (/contact.*already exists/i.test(message) || /already exists/i.test(error?.message || '')) {
+            return { status: 'exists', data: null };
+        }
+        throw new Error(`Resend contacts.create failed: ${message}`);
+    }
+
+    return { status: 'created', data };
+}
+
+function sanitizeContactField(value) {
+    if (!value) return undefined;
+    const trimmed = String(value).trim();
+    return trimmed.length ? trimmed : undefined;
 }

@@ -2,6 +2,17 @@
  * Professional email template using template literals (JSX-free for Node.js compatibility)
  */
 
+const palette = {
+  background: '#FAF6F0',
+  surface: '#FDFDFD',
+  text: '#3A3A3A',
+  muted: '#7C6F64',
+  primary: '#DDBEA9',
+  primaryDark: '#B45F4D',
+  accent: '#E4C590',
+  highlight: '#F3E2D5'
+};
+
 const EmailTemplate = ({ 
   opportunities = [], 
   marketContext = {}, 
@@ -9,16 +20,16 @@ const EmailTemplate = ({
 }) => {
 
   const getSentimentColor = (score) => {
-    if (score >= 8) return '#10b981'; // Green
-    if (score >= 6) return '#f59e0b'; // Amber  
-    return '#ef4444'; // Red
+    if (score >= 8) return palette.primaryDark;
+    if (score >= 6) return palette.primary;
+    return palette.muted;
   };
 
   const getRecommendationStyle = (recommendation) => {
     const styles = {
-      'STRONGLY CONSIDER': 'background-color: #10b981; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;',
-      'NEUTRAL': 'background-color: #f59e0b; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;',
-      'STAY AWAY': 'background-color: #ef4444; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;'
+      'STRONGLY CONSIDER': `background-color: ${palette.primaryDark}; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;`,
+      'NEUTRAL': `background-color: ${palette.primary}; color: ${palette.text}; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;`,
+      'STAY AWAY': `background-color: ${palette.muted}; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;`
     };
     return styles[recommendation] || styles['NEUTRAL'];
   };
@@ -32,7 +43,7 @@ const EmailTemplate = ({
         const vol = opp.volatilityData || {};
         
         return `
-          <div class="opportunity-card" style="margin: 12px 0; padding: 16px; border: 1px solid #e5e7eb; border-radius: 6px; background-color: ${index % 2 === 0 ? '#f9fafb' : '#ffffff'};">
+          <div class="opportunity-card" style="margin: 12px 0; padding: 16px; border: 1px solid ${palette.accent}; border-radius: 8px; background-color: ${index % 2 === 0 ? palette.surface : palette.highlight};">
             <!-- Header Row -->
             <table class="header-table" style="width: 100%; margin-bottom: 8px;">
               <tr>
@@ -40,9 +51,9 @@ const EmailTemplate = ({
                   <table style="width: 100%;">
                     <tr>
                       <td style="padding: 0; margin: 0;">
-                        <h3 style="font-size: 18px; font-weight: bold; margin: 0; color: #1f2937; display: inline-block;">${opp.symbol}</h3>
-                        <span style="font-size: 12px; color: #6b7280; margin-left: 12px;">$${vol.currentPrice?.toFixed(2) || 'N/A'}</span>
-                        <span style="font-size: 12px; color: #6b7280; margin-left: 8px;">${new Date(opp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (${opp.daysToEarnings}d)</span>
+                        <h3 style="font-size: 18px; font-weight: bold; margin: 0; color: ${palette.text}; display: inline-block;">${opp.symbol}</h3>
+                        <span style="font-size: 12px; color: ${palette.muted}; margin-left: 12px;">$${vol.currentPrice?.toFixed(2) || 'N/A'}</span>
+                        <span style="font-size: 12px; color: ${palette.muted}; margin-left: 8px;">${new Date(opp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (${opp.daysToEarnings}d)</span>
                       </td>
                     </tr>
                   </table>
@@ -52,7 +63,7 @@ const EmailTemplate = ({
                     <tr>
                       <td style="text-align: center; padding-right: 8px;">
                         <div style="color: ${getSentimentColor(analysis.sentimentScore)}; font-weight: 600; font-size: 20px; margin: 0;">${analysis.sentimentScore || 'N/A'}</div>
-                        <div style="font-size: 10px; color: #6b7280; margin: 0;">Sentiment</div>
+                        <div style="font-size: 10px; color: ${palette.muted}; margin: 0;">Sentiment</div>
                       </td>
                       <td style="text-align: center;">
                         <span class="recommendation-badge" style="${getRecommendationStyle(analysis.recommendation)}">
@@ -67,7 +78,7 @@ const EmailTemplate = ({
             </table>
             
             <!-- Compact Metrics Table -->
-            <table class="metrics-table" style="width: 100%; font-size: 11px; color: #374151;">
+            <table class="metrics-table" style="width: 100%; font-size: 11px; color: ${palette.text};">
               <tr>
                 <td style="padding: 4px 0; font-weight: 500;">IV/HV:</td>
                 <td style="padding: 4px 0;">${vol.impliedVolatility?.toFixed(1) || 'N/A'}% / ${vol.historicalVolatility?.toFixed(1) || 'N/A'}%</td>
@@ -77,11 +88,11 @@ const EmailTemplate = ({
               </tr>
               <tr>
                 <td style="padding: 4px 0; font-weight: 500;">Quality:</td>
-                <td style="padding: 4px 0; color: ${opp.qualityScore >= 70 ? '#10b981' : opp.qualityScore >= 40 ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
+                <td style="padding: 4px 0; color: ${opp.qualityScore >= 70 ? palette.primaryDark : opp.qualityScore >= 40 ? palette.accent : palette.muted}; font-weight: 600;">
                   ${opp.qualityScore || 'N/A'}/100
                 </td>
                 <td style="padding: 4px 0; font-weight: 500;">Vol Status:</td>
-                <td style="padding: 4px 0; color: ${vol.impliedVolatility && vol.historicalVolatility && vol.impliedVolatility > vol.historicalVolatility ? '#dc2626' : '#16a34a'}; font-weight: 500;">
+                <td style="padding: 4px 0; color: ${vol.impliedVolatility && vol.historicalVolatility && vol.impliedVolatility > vol.historicalVolatility ? palette.primaryDark : palette.muted}; font-weight: 500;">
                   ${vol.impliedVolatility && vol.historicalVolatility ? 
                     (vol.impliedVolatility > vol.historicalVolatility ? 'High' : 'Normal') : 'N/A'}
                 </td>
@@ -89,7 +100,7 @@ const EmailTemplate = ({
               <tr>
                 <td style="padding: 4px 0; font-weight: 500;">RSI:</td>
                 <td style="padding: 4px 0; color: ${vol.technicalIndicators?.rsi ? 
-                  (vol.technicalIndicators.rsi > 70 ? '#dc2626' : vol.technicalIndicators.rsi < 30 ? '#16a34a' : '#6b7280') : '#6b7280'};">
+                  (vol.technicalIndicators.rsi > 70 ? palette.primaryDark : vol.technicalIndicators.rsi < 30 ? palette.primary : palette.muted) : palette.muted};">
                   ${vol.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
                 </td>
                 <td style="padding: 4px 0; font-weight: 500;">Options Volume:</td>
@@ -100,9 +111,9 @@ const EmailTemplate = ({
             <!-- Strategies (if any) -->
             ${analysis.strategies && analysis.strategies.length > 0 ? `
               <div style="margin-top: 8px; font-size: 11px;">
-                <div style="font-weight: 600; margin-bottom: 4px; color: #374151;">Strategies:</div>
+                <div style="font-weight: 600; margin-bottom: 4px; color: ${palette.text};">Strategies:</div>
                 ${analysis.strategies.slice(0, 2).map(strategy => `
-                  <div style="margin-bottom: 2px; color: #6b7280;">• ${strategy.name}</div>
+                  <div style="margin-bottom: 2px; color: ${palette.muted};">• ${strategy.name}</div>
                 `).join('')}
               </div>
             ` : ''}
@@ -111,7 +122,7 @@ const EmailTemplate = ({
       }).join('')}
     </div>
   ` : `
-    <div style="padding: 24px; text-align: center; color: #6b7280; background-color: #f9fafb; border-radius: 8px; margin: 16px 0;">
+    <div style="padding: 24px; text-align: center; color: ${palette.muted}; background-color: ${palette.highlight}; border-radius: 8px; margin: 16px 0;">
       <p style="margin: 0; font-size: 14px;">No qualifying opportunities found today.</p>
       <p style="margin: 4px 0 0 0; font-size: 12px;">Check back tomorrow for new earnings opportunities.</p>
     </div>
@@ -169,22 +180,22 @@ const EmailTemplate = ({
           }
         </style>
       </head>
-      <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <div class="container" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+      <body style="margin: 0; padding: 0; background-color: ${palette.background}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: ${palette.text};">
+        <div class="container" style="max-width: 600px; margin: 0 auto; background-color: ${palette.surface}; box-shadow: 0 12px 24px rgba(58, 58, 58, 0.15); border-radius: 12px; overflow: hidden;">
           
           <!-- Header -->
-          <div class="header-padding" style="padding: 24px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); text-align: center;">
-            <h1 style="color: #ffffff; margin: 0 0 8px 0; font-size: 24px; font-weight: bold;">
+          <div class="header-padding" style="padding: 28px; background: linear-gradient(135deg, ${palette.primaryDark} 0%, ${palette.primary} 100%); text-align: center;">
+            <h1 style="color: ${palette.surface}; margin: 0 0 8px 0; font-size: 26px; font-weight: bold; letter-spacing: 0.02em;">
               🎯 Options Insight
             </h1>
-            <p style="color: #bfdbfe; margin: 0; font-size: 14px;">
+            <p style="color: ${palette.background}; margin: 0; font-size: 14px; font-weight: 500;">
               Quantitative Earnings Opportunities • ${date}
             </p>
           </div>
 
           <!-- Summary -->
-          <div class="content" style="padding: 20px 24px; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-            <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.5;">
+          <div class="content" style="padding: 22px 28px; background-color: ${palette.highlight}; border-bottom: 1px solid ${palette.accent};">
+            <p style="margin: 0; font-size: 14px; color: ${palette.text}; line-height: 1.6;">
               Today's analysis identified <strong>${opportunities.length} high-quality earnings opportunities</strong> using volatility 
               analysis, technical indicators, and AI-powered sentiment scoring.
             </p>
@@ -192,7 +203,7 @@ const EmailTemplate = ({
 
           <!-- Opportunities -->
           <div style="padding: 0;">
-            <h2 style="font-size: 16px; font-weight: 600; margin: 20px 24px 8px 24px; color: #1f2937;">
+            <h2 style="font-size: 16px; font-weight: 600; margin: 24px 28px 8px 28px; color: ${palette.text}; text-transform: uppercase; letter-spacing: 0.08em;">
               📊 Earnings Opportunities
             </h2>
             ${opportunitiesHtml}
@@ -203,24 +214,24 @@ const EmailTemplate = ({
 
           <!-- Market Context -->
           ${marketContext.vix ? `
-            <div style="margin: 24px; padding: 16px; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px;">
-              <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #334155;">
+            <div style="margin: 24px 28px; padding: 18px; background-color: ${palette.surface}; border: 1px solid ${palette.accent}; border-radius: 8px; box-shadow: 0 8px 20px rgba(228, 197, 144, 0.25);">
+              <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: ${palette.primaryDark}; text-transform: uppercase; letter-spacing: 0.05em;">
                 📈 Market Context
               </h3>
-              <div style="font-size: 12px; color: #475569; line-height: 1.4;">
-                <div style="margin-bottom: 4px;"><strong>VIX:</strong> ${marketContext.vix.toFixed(1)} (${getMarketRegimeDescription(marketContext.vix)})</div>
-                <div style="margin-bottom: 4px;"><strong>Market Regime:</strong> ${marketContext.marketRegime || 'Normal'}</div>
-                <div><strong>Strategy Guidance:</strong> ${getVixGuidance(marketContext.vix)}</div>
+              <div style="font-size: 12px; color: ${palette.muted}; line-height: 1.5;">
+                <div style="margin-bottom: 6px;"><strong style="color: ${palette.text};">VIX:</strong> ${marketContext.vix.toFixed(1)} (${getMarketRegimeDescription(marketContext.vix)})</div>
+                <div style="margin-bottom: 6px;"><strong style="color: ${palette.text};">Market Regime:</strong> ${marketContext.marketRegime || 'Normal'}</div>
+                <div><strong style="color: ${palette.text};">Strategy Guidance:</strong> ${getVixGuidance(marketContext.vix)}</div>
               </div>
             </div>
           ` : ''}
 
           <!-- Key Terms -->
-          <div style="margin: 24px; padding: 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-            <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #374151;">
+          <div style="margin: 24px 28px; padding: 18px; background-color: ${palette.surface}; border: 1px solid ${palette.accent}; border-radius: 8px;">
+            <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: ${palette.primaryDark}; text-transform: uppercase; letter-spacing: 0.05em;">
               📚 Key Terms
             </h3>
-            <div style="font-size: 11px; color: #6b7280; line-height: 1.4;">
+            <div style="font-size: 11px; color: ${palette.muted}; line-height: 1.5;">
               <div style="margin-bottom: 6px;"><strong>IV (Implied Volatility):</strong> Market's expectation of future price movement</div>
               <div style="margin-bottom: 6px;"><strong>HV (Historical Volatility):</strong> Past 30-day realized price movement</div>
               <div style="margin-bottom: 6px;"><strong>Expected Move:</strong> Predicted price range through earnings (1 std dev)</div>
@@ -229,19 +240,19 @@ const EmailTemplate = ({
           </div>
 
           <!-- Important Disclaimer -->
-          <div style="margin: 24px; padding: 20px; background-color: #fef2f2; border: 2px solid #fca5a5; border-radius: 8px;">
-            <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 12px 0; color: #dc2626; display: flex; align-items: center;">
+          <div style="margin: 24px 28px; padding: 22px; background-color: #F8E6DC; border: 2px solid ${palette.primaryDark}; border-radius: 10px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 12px 0; color: ${palette.primaryDark}; display: flex; align-items: center; letter-spacing: 0.04em;">
               ⚠️ Important Disclaimer
             </h3>
-            <div style="font-size: 12px; color: #374151; line-height: 1.5; margin-bottom: 12px;">
+            <div style="font-size: 12px; color: ${palette.text}; line-height: 1.5; margin-bottom: 12px;">
               <p style="margin: 0 0 8px 0; font-weight: 600;">
                 NOT FINANCIAL ADVICE: This analysis is generated by an automated algorithm and AI (Google Gemini) 
                 for educational purposes only. The complete source code is available on 
-                <a href="https://github.com/ravishan16/options-insight" style="color: #2563eb; text-decoration: underline;">GitHub</a> 
+                <a href="https://github.com/ravishan16/options-insight" style="color: ${palette.primaryDark}; text-decoration: underline;">GitHub</a> 
                 for transparency and verification.
               </p>
             </div>
-            <div style="font-size: 11px; color: #4b5563; line-height: 1.4;">
+            <div style="font-size: 11px; color: ${palette.muted}; line-height: 1.5;">
               Options trading involves substantial risk and may result in total loss. These are algorithmic 
               recommendations, not advice from any individual. All probability calculations are theoretical. Please 
               consult a qualified financial advisor and only risk capital you can afford to lose.
@@ -249,13 +260,16 @@ const EmailTemplate = ({
           </div>
 
           <!-- Footer -->
-          <div style="padding: 20px 24px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
-            <p style="font-size: 11px; color: #6b7280; margin: 0 0 8px 0; line-height: 1.4;">
+          <div style="padding: 22px 28px; background-color: ${palette.background}; border-top: 1px solid ${palette.accent}; text-align: center;">
+            <p style="font-size: 11px; color: ${palette.muted}; margin: 0 0 8px 0; line-height: 1.5;">
               Powered by Finnhub, Alpha Vantage, and Google Gemini
             </p>
-            <p style="font-size: 10px; color: #9ca3af; margin: 0; line-height: 1.3;">
+            <p style="font-size: 10px; color: ${palette.muted}; margin: 0; line-height: 1.4;">
               Options trading involves risk. Past performance does not guarantee future results. 
               This newsletter is for educational purposes only and should not be considered personalized investment advice.
+            </p>
+            <p style="font-size: 10px; color: ${palette.muted}; margin: 12px 0 0 0;">
+              <a href="{{{ unsubscribe_url }}}" style="color: ${palette.primaryDark}; text-decoration: underline;">Unsubscribe</a>
             </p>
           </div>
         </div>
@@ -274,11 +288,11 @@ function generateConsolidatedRecommendation(opportunities, marketContext) {
   
   if (stronglyConsider.length === 0) {
     return `
-      <div style="margin: 24px; padding: 16px; background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px;">
-        <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #92400e;">
+      <div style="margin: 24px 28px; padding: 18px; background-color: ${palette.highlight}; border: 1px solid ${palette.accent}; border-radius: 8px;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: ${palette.primaryDark}; text-transform: uppercase; letter-spacing: 0.05em;">
           🤖 AI Consolidated View
         </h3>
-        <p style="font-size: 12px; line-height: 1.4; margin: 0; color: #475569;">
+        <p style="font-size: 12px; line-height: 1.5; margin: 0; color: ${palette.muted};">
           <strong>NEUTRAL MARKET:</strong> No strongly recommended opportunities today. 
           Average sentiment: ${avgSentiment.toFixed(1)}/10. Consider waiting for better setups or focus on paper trading to refine strategy.
         </p>
@@ -291,14 +305,14 @@ function generateConsolidatedRecommendation(opportunities, marketContext) {
     .slice(0, 2);
     
   return `
-    <div style="margin: 24px; padding: 16px; background-color: #d1fae5; border: 1px solid #10b981; border-radius: 6px;">
-      <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: #065f46;">
+    <div style="margin: 24px 28px; padding: 18px; background-color: ${palette.surface}; border: 1px solid ${palette.accent}; border-radius: 8px; box-shadow: 0 10px 22px rgba(180, 95, 77, 0.2);">
+      <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: ${palette.primaryDark}; text-transform: uppercase; letter-spacing: 0.05em;">
         🤖 AI Consolidated Recommendation
       </h3>
-      <p style="font-size: 12px; line-height: 1.4; margin: 0 0 8px 0; color: #475569;">
+      <p style="font-size: 12px; line-height: 1.5; margin: 0 0 8px 0; color: ${palette.muted};">
         <strong>TOP PICKS:</strong> ${topPicks.map(item => `${item.opportunity.symbol} (${item.analysis.sentimentScore}/10)`).join(', ')}
       </p>
-      <p style="font-size: 12px; line-height: 1.4; margin: 0; color: #475569;">
+      <p style="font-size: 12px; line-height: 1.5; margin: 0; color: ${palette.muted};">
         <strong>MARKET OUTLOOK:</strong> ${stronglyConsider.length} strong opportunities identified. 
         Avg sentiment: ${avgSentiment.toFixed(1)}/10. Focus on volatility-selling strategies in current ${marketContext.marketRegime || 'normal'} regime.
       </p>

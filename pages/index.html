@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Options Insight – Quantitative Earnings Briefing</title>
+    <meta
+      name="description"
+      content="Options Insight is a daily, quantitative earnings newsletter delivering volatility analysis, AI commentary, and trade-ready playbooks."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      window.OPTIONS_INSIGHT_API_URL = window.OPTIONS_INSIGHT_API_URL || null;
+    </script>
+    <script src="signup.js" type="module" defer></script>
+  </head>
+  <body data-api-endpoint="https://options-insight.ravishankar-sivasubramaniam.workers.dev/subscribe" class="layout">
+    <main class="hero">
+      <div class="container hero-content">
+        <span class="badge">Daily Quant Research • Weekdays at 8:00&nbsp;UTC</span>
+        <h1>Institutional-grade earnings prep, distilled.</h1>
+        <p class="lead">
+          A single briefing with expected moves, volatility context, and AI narration—ready before the market opens.
+        </p>
+        <form id="signup-form" class="signup-card">
+          <label class="field" for="email">
+            <span>Email</span>
+            <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <label class="field" for="firstName">
+            <span>First name <span class="optional">(optional)</span></span>
+            <input id="firstName" name="firstName" type="text" placeholder="Elan" autocomplete="given-name" />
+          </label>
+          <button type="submit" class="cta">Join the briefing list</button>
+          <p id="form-message" class="message info" role="status" aria-live="polite"></p>
+          <p class="small-print">
+            Zero spam. Unsubscribe anytime.
+          </p>
+        </form>
+        <ul class="feature-notes">
+          <li>⚡ Curated earnings universe with deterministic scoring</li>
+          <li>📊 Expected move, IV percentile, and regime context in one view</li>
+          <li>🤖 Gemini-generated strategy notes with probability-of-profit guardrails</li>
+        </ul>
+      </div>
+    </main>
+
+    <section class="context">
+      <div class="container context-grid">
+        <div class="context-card">
+          <h2>Built to stay reliable</h2>
+          <p>Deterministic pipeline with rate-limit aware fallbacks and transparent run summaries.</p>
+        </div>
+        <div class="context-card">
+          <h2>Open and inspectable</h2>
+          <p>
+            Source code lives on
+            <a href="https://github.com/ravishan16/options-insight" target="_blank" rel="noreferrer">GitHub</a>—fork it,
+            inspect it, or run it yourself.
+          </p>
+        </div>
+        <div class="context-card">
+          <h2>Ready for premium sellers</h2>
+          <p>Optimized for event-driven options desks that need the volatility story fast.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container">
+        <p>© <span id="current-year"></span> Options Insight. Educational research, not investment advice.</p>
+        <p>Cloudflare Workers · Pages · Resend · Google Gemini · Finnhub · Alpha Vantage</p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 import { getEarningsOpportunities, getMarketContext } from './finnhub.js';
 import { generateTradingIdeas, validateAnalysis } from './gemini.js';
-import { sendEmailDigest, sendRunSummaryEmail } from './email.js';
+import { sendEmailDigest, sendRunSummaryEmail, addSubscriberToAudience } from './email.js';
 import { initializeRealData } from './real-volatility.js';
 
 export default {
@@ -58,6 +58,102 @@ export default {
                 headers: { 'Content-Type': 'application/json' },
                 status: status.ready ? 200 : 503
             });
+        }
+
+        if (url.pathname === '/subscribe') {
+            if (request.method === 'OPTIONS') {
+                return handleCorsPreflight(request, env);
+            }
+
+            const origin = request.headers.get('Origin');
+            const corsHeaders = buildCorsHeaders(origin, env);
+
+            if (!corsHeaders) {
+                console.warn(`🚫 Blocked subscribe request from disallowed origin: ${origin || 'unknown'}`);
+                const fallbackHeaders = createCorsHeaderObject('*');
+                return respondWithCors(JSON.stringify({
+                    success: false,
+                    error: 'Origin not allowed'
+                }), {
+                    status: 403
+                }, fallbackHeaders);
+            }
+
+            if (request.method !== 'POST') {
+                return respondWithCors(JSON.stringify({
+                    success: false,
+                    error: 'Method not allowed'
+                }), {
+                    status: 405
+                }, corsHeaders);
+            }
+
+            let payload;
+            try {
+                payload = await request.json();
+            } catch (error) {
+                console.warn('⚠️  Invalid JSON payload for /subscribe');
+                return respondWithCors(JSON.stringify({
+                    success: false,
+                    error: 'Invalid JSON payload'
+                }), {
+                    status: 400
+                }, corsHeaders);
+            }
+
+            const email = (payload?.email || '').trim().toLowerCase();
+            const firstName = (payload?.firstName || '').trim();
+            const lastName = (payload?.lastName || '').trim();
+
+            if (!isValidEmail(email)) {
+                return respondWithCors(JSON.stringify({
+                    success: false,
+                    error: 'Please provide a valid email address'
+                }), {
+                    status: 400
+                }, corsHeaders);
+            }
+
+            if (!env.RESEND_API_KEY || !env.AUDIENCE_ID) {
+                console.error('❌ Subscription attempt while RESEND_API_KEY or AUDIENCE_ID missing');
+                return respondWithCors(JSON.stringify({
+                    success: false,
+                    error: 'Subscription service unavailable'
+                }), {
+                    status: 503
+                }, corsHeaders);
+            }
+
+            try {
+                const result = await addSubscriberToAudience(env.RESEND_API_KEY, env.AUDIENCE_ID, email, {
+                    firstName,
+                    lastName,
+                    attributes: {
+                        source: payload?.source || 'options-insight-pages',
+                        consentedAt: new Date().toISOString()
+                    }
+                });
+
+                const message = result.status === 'exists'
+                    ? 'You are already subscribed to Options Insight.'
+                    : 'Thanks! You are on the list for the next briefing.';
+
+                return respondWithCors(JSON.stringify({
+                    success: true,
+                    message,
+                    status: result.status
+                }), {
+                    status: 200
+                }, corsHeaders);
+            } catch (error) {
+                console.error('❌ Failed to add subscriber:', error);
+                return respondWithCors(JSON.stringify({
+                    success: false,
+                    error: 'Unable to subscribe at this time'
+                }), {
+                    status: 500
+                }, corsHeaders);
+            }
         }
 
         // Manual trigger endpoint (for testing)
@@ -137,10 +233,10 @@ async function processAndSendDigest(env) {
     };
 
     try {
-        const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, RESEND_API_KEY, GEMINI_API_KEY } = env;
+        const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, RESEND_API_KEY, GEMINI_API_KEY, AUDIENCE_ID } = env;
 
         beginStep('Validate environment');
-        const missingKeys = ['FINNHUB_API_KEY', 'RESEND_API_KEY', 'GEMINI_API_KEY'].filter(key => !env[key]);
+        const missingKeys = ['FINNHUB_API_KEY', 'RESEND_API_KEY', 'GEMINI_API_KEY', 'AUDIENCE_ID'].filter(key => !env[key]);
         if (missingKeys.length > 0) {
             const message = `Missing required secrets: ${missingKeys.join(', ')}`;
             failStep(message);
@@ -229,7 +325,9 @@ async function processAndSendDigest(env) {
 
         beginStep('Send newsletter');
         console.log("📧 Step 4: Sending newsletter...");
-        const result = await sendEmailDigest(RESEND_API_KEY, validatedContent, marketContext);
+        const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, validatedContent, marketContext, {
+            from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com'
+        });
         summary.metrics.newsletterSent = true;
         summary.metrics.broadcastId = result.broadcastId;
         summary.metrics.recipientCount = result.recipientCount;
@@ -326,4 +424,131 @@ function timingSafeEqual(a, b) {
     }
 
     return result === 0;
+}
+
+function isValidEmail(email) {
+    if (typeof email !== 'string') return false;
+    const value = email.trim();
+    if (value.length > 254) return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+}
+
+function getAllowedOrigins(env) {
+    const fromEnv = env.SIGNUP_ALLOWED_ORIGINS || env.SUBSCRIBE_ALLOWED_ORIGINS || env.ALLOWED_ORIGINS;
+    if (fromEnv) {
+        return fromEnv.split(',').map(origin => origin.trim()).filter(Boolean);
+    }
+
+    return [
+        'https://options-insight.ravishankars.com',
+        'https://options-insight.pages.dev',
+        'https://optionsinsight.pages.dev',
+        'https://options-insight-signup.pages.dev',
+        'https://*.options-insight-signup.pages.dev',
+        'http://localhost:8787',
+        'http://localhost:4173',
+        'http://127.0.0.1:8787'
+    ];
+}
+
+function buildCorsHeaders(origin, env) {
+    const allowedOrigins = getAllowedOrigins(env);
+    const allowAll = allowedOrigins.includes('*');
+
+    if (!origin) {
+        return createCorsHeaderObject(allowAll ? '*' : allowedOrigins[0] || '*');
+    }
+
+    if (allowAll) {
+        return createCorsHeaderObject('*');
+    }
+
+    const matchedOrigin = resolveAllowedOrigin(origin, allowedOrigins);
+    if (matchedOrigin) {
+        return createCorsHeaderObject(matchedOrigin === '*' ? '*' : origin);
+    }
+
+    return null;
+}
+
+function getDefaultCorsHeaders(env) {
+    const allowedOrigins = getAllowedOrigins(env);
+    if (!allowedOrigins.length) {
+        return createCorsHeaderObject('*');
+    }
+    const allowAll = allowedOrigins.includes('*');
+    return createCorsHeaderObject(allowAll ? '*' : allowedOrigins[0]);
+}
+
+function resolveAllowedOrigin(origin, allowedOrigins) {
+    for (const allowed of allowedOrigins) {
+        if (!allowed) {
+            continue;
+        }
+
+        if (allowed === '*') {
+            return '*';
+        }
+
+        if (!allowed.includes('*')) {
+            if (allowed === origin) {
+                return origin;
+            }
+            continue;
+        }
+
+        const pattern = allowed
+            .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+            .replace(/\*/g, '.*');
+        const regex = new RegExp(`^${pattern}$`, 'i');
+        if (regex.test(origin)) {
+            return origin;
+        }
+    }
+
+    return null;
+}
+
+function createCorsHeaderObject(allowOrigin) {
+    return {
+        'Access-Control-Allow-Origin': allowOrigin,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin'
+    };
+}
+
+function handleCorsPreflight(request, env) {
+    const corsHeaders = buildCorsHeaders(request.headers.get('Origin'), env);
+    if (!corsHeaders) {
+        return new Response(null, { status: 403 });
+    }
+
+    const headers = new Headers(corsHeaders);
+    const requestedHeaders = request.headers.get('Access-Control-Request-Headers');
+    if (requestedHeaders) {
+        headers.set('Access-Control-Allow-Headers', requestedHeaders);
+    }
+
+    return new Response(null, {
+        status: 204,
+        headers
+    });
+}
+
+function respondWithCors(body, init = {}, corsHeaders = {}) {
+    const responseHeaders = new Headers(init.headers || {});
+    for (const [key, value] of Object.entries(corsHeaders)) {
+        responseHeaders.set(key, value);
+    }
+    if (!responseHeaders.has('Content-Type')) {
+        responseHeaders.set('Content-Type', 'application/json');
+    }
+
+    return new Response(body, {
+        ...init,
+        headers: responseHeaders
+    });
 }

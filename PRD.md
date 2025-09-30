@@ -59,6 +59,14 @@ This document outlines the product requirements for the AI Stock Analyst Newslet
     -   **Disclaimer**: Comprehensive risk disclosures
 -   **Audience:** Predefined audience in Resend with subscription management capabilities.
 
+### 3.4. Public Signup and Audience Management
+
+-   **Signup Surface:** Cloudflare Pages microsite (`pages/index.html`) deployed to the production domain [`https://options-insight.ravishankars.com/`](https://options-insight.ravishankars.com/) with branded landing content. Cloudflare continues to issue per-commit preview URLs (`https://<hash>.options-insight-signup.pages.dev`) for QA prior to release.
+-   **Brand Palette:** The microsite mirrors the warm palette from [ravishankars.com](https://ravishankars.com/) via shared CSS variables (`--bg`, `--surface`, `--primary`, `--primary-dark`, `--accent`, etc.) to ensure visual continuity across marketing surfaces.
+-   **CORS Guardrails:** `SIGNUP_ALLOWED_ORIGINS` secret restricts who can call `/subscribe`. Defaults include localhost, the production `options-insight.ravishankars.com` hostname, and the wildcard preview domains (`*.options-insight-signup.pages.dev`).
+-   **Audience Enrollment:** Successful submissions add/merge contacts into the configured Resend audience with acquisition metadata.
+-   **Unsubscribe Link:** Every broadcast footer renders Resend’s `{{{ unsubscribe_url }}}` so recipients can self-manage preferences without additional infrastructure.
+
 ## 4. Technical Architecture
 
 -   **Compute:** Cloudflare Workers (scheduled cron job) with enhanced error handling and retry logic.
@@ -98,7 +106,7 @@ This document outlines the product requirements for the AI Stock Analyst Newslet
 -   **POP Thresholds**: Minimum probability of profit requirements (55%+)
 -   **Volatility Filters**: Reject opportunities with insufficient volatility or liquidity
 -   **Secure Manual Trigger**: `/trigger` endpoint must require a signed shared-secret header to prevent unauthorized newsletter sends
-go-   **Run Status Notifications**: After every scheduled or manual run, email a Resend summary (status, metrics, errors) to the maintainer for operational visibility
+-   **Run Status Notifications**: After every scheduled or manual run, email a Resend summary (status, metrics, errors) to the maintainer for operational visibility
 -   **Human Oversight**: Logging and monitoring capabilities for manual review
 
 ## 7. Future Features (Post-Enhanced MVP)
