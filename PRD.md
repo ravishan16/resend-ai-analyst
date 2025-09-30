@@ -1,54 +1,265 @@
-# Product Requirements Document (PRD): AI Stock Analyst Newsletter
+# Product Requirements Document (PRD): Options Insight Newsletter
 
 ## 1. Overview
 
-This document outlines the product requirements for the AI Stock Analyst Newsletter, an autonomous agent that delivers daily, quantitative AI-powered trading analysis with volatility-based opportunity identification, probability of profit calculations, and sentiment-driven recommendations to retail options traders.
+This document outlines the product requirements for Options Insight, an autonomous Cloudflare Worker that delivers weekday quantitative earnings analysis with volatility-based opportunity identification, AI-powered sentiment analysis, and specific options strategy recommendations to retail traders.
 
 ## 2. Vision & Goal
 
-**Vision:** To empower retail traders with institutional-grade, quantitative AI-driven analysis that combines volatility metrics, sentiment analysis, and probability calculations to identify high-quality trading opportunities.
+**Vision:** To empower retail traders with institutional-grade, quantitative analysis that combines real-time volatility metrics, technical indicators, and AI-driven sentiment analysis to identify high-quality earnings opportunities.
 
-**Goal:** To create a fully autonomous system that scans the market for high-volatility earnings opportunities, performs quantitative analysis using multiple data sources, calculates probability of profit for various strategies, and delivers actionable recommendations with clear "STRONGLY CONSIDER" or "STAY AWAY" guidance in a professional daily newsletter.
+**Goal:** To create a fully autonomous system that scans earnings calendars, performs comprehensive volatility analysis using premium data sources, generates AI recommendations with quality validation, and delivers professional newsletters via mobile-optimized email templates.
+
+## 3. Core Functionality (Current Implementation)
+
+### 3.1. Daily Market Scan & Yahoo Finance Optimized Analysis
+
+-   **Trigger:** Automated execution every weekday morning at 8:00 AM UTC via Cloudflare Workers cron.
+-   **Primary Data Source:** Yahoo Finance API for quotes and historical data (67-255ms response times, 100% reliability).
+-   **Earnings Calendar:** Finnhub API for comprehensive earnings schedule and market context (VIX).
+-   **Stock Universe:** Curated list of liquid S&P 500 and NASDAQ 100 stocks (defined in `src/config.js`).
+-   **Advanced Analytics:** Multi-factor quality scoring algorithm based on:
+    -   **Real Historical Volatility**: 30-day calculated volatility from Yahoo Finance historical data
+    -   **Implied Volatility Estimates**: Sophisticated estimation based on market characteristics
+    -   **Technical Indicators**: RSI calculations and 5-week price ranges
+    -   **Quality Scoring**: Composite score incorporating volatility, timing, and liquidity factors
+    -   **Days to Earnings**: Optimal time window (1-45 days with preference for 14-21 days)
+-   **Performance:** Intelligent 5-minute caching reduces API calls by ~80% during bulk operations.
+
+### 3.2. AI-Powered Analysis with Quantitative Foundation
+
+-   **Core Engine:** Google Gemini Pro with structured prompt engineering for quantitative analysis.
+-   **Rich Data Context:** For each opportunity, AI receives:
+    -   Current price, historical volatility, and implied volatility estimates
+    -   Expected earnings move calculations and percentage impact
+    -   RSI technical indicators and 5-week price range context
+    -   Quality score and volatility ranking relative to universe
+    -   Market regime context (VIX level and volatility environment)
+-   **Structured Analysis Output:**
+    -   **Sentiment Score (1-10)**: Quantitative assessment of opportunity attractiveness
+    -   **Recommendation Classification**: "STRONGLY CONSIDER", "NEUTRAL", or "STAY AWAY"
+    -   **Strategic Options**: 2-3 specific options strategies with entry timing
+    -   **Risk Context**: Volatility assessment and position sizing guidance
+-   **Quality Validation**: Multi-layer validation in `gemini.js` rejects inconsistent or low-quality analyses.
+
+### 3.3. Professional Newsletter Delivery with Mobile Optimization
+
+-   **Email Service:** Resend API with broadcast audience management and automatic unsubscribe handling.
+-   **Template Engine:** React Email with mobile-responsive design optimized for mobile trading apps.
+-   **Enhanced Content Structure:**
+    -   **Market Context**: VIX level, volatility regime, and strategy guidance
+    -   **Individual Analysis**: Each stock with sentiment score, recommendation badge, and key metrics
+    -   **Metrics Display**: IV/HV ratios, expected move, quality scores, RSI, and 5-week ranges
+    -   **Strategy Recommendations**: Specific options strategies with entry criteria
+    -   **Educational Content**: Key terms definitions including RSI, volatility concepts, and quality scoring
+
+### 3.4. Graceful Degradation & Reliability Architecture
+
+-   **Resilient Design:** 7-stage pipeline with comprehensive error handling ensuring newsletter delivery even with partial data failures.
+-   **Multi-Source Fallback:** Primary Yahoo Finance → Secondary Finnhub → Estimated data (never fail the pipeline).
+-   **Quality Gates:** Three delivery scenarios:
+    1. **Optimal:** Full real data with AI analysis (target scenario)
+    2. **Degraded:** Limited data with market context and basic analysis
+    3. **Minimal:** Quality gate failures → Newsletter with explanation and educational content
+-   **Rate Limiting:** Intelligent 500ms delays between API calls with 5-minute caching to respect external API limits.
+-   **Monitoring:** Comprehensive telemetry with summary emails, metrics tracking, and error reporting.
+
+### 3.5. Public Signup and Audience Management
+
+-   **Signup Surface:** Cloudflare Pages microsite (`pages/index.html`) deployed to production domain with branded landing content.
+-   **CORS Protection:** Configurable allowed origins with wildcard support for preview environments.
+-   **Audience Enrollment:** Successful submissions add contacts to Resend audience with acquisition metadata.
+-   **Unsubscribe Management:** Automatic unsubscribe headers in every broadcast for compliance and user control.
+
+## 4. Technical Architecture (Current Implementation)
+
+### 4.1. Serverless Infrastructure
+-   **Platform:** Cloudflare Workers with TypeScript support
+-   **Deployment:** Automated via GitHub Actions with Wrangler CLI
+-   **Pages Integration:** Cloudflare Pages for subscription landing page with CORS-protected signup
+-   **Environment:** Complete configuration validation with 15+ environment variables
+
+### 4.2. Data Sources & Integration
+-   **Primary:** Yahoo Finance API (quotes, historical data, options volume estimation)
+-   **Secondary:** Finnhub API (earnings calendar, market context, quote fallback)
+-   **AI:** Google Gemini Pro with structured validation and quality scoring
+-   **Email:** Resend API with broadcast management and automatic unsubscribe headers
+-   **Performance:** Intelligent caching reduces API calls by ~80% during bulk operations
+
+### 4.3. Quality Assurance & Testing
+-   **Test Coverage:** 69/69 tests passing across 7 test files (email templates, AI validation, data providers)
+-   **Component Testing:** CLI-driven individual component validation (`make test-*` commands)
+-   **End-to-End:** Full pipeline simulation with `make test-full-run`
+-   **Email Preview:** Local HTML preview generation with `make preview-email`
+
+### 4.4. Development Workflow
+-   **Environment Management:** `.env` file with `make push-secrets` for deployment
+-   **Local Testing:** Node.js testing scripts for individual components
+-   **Deployment Verification:** `make verify-deployment` for production health checks
+-   **Debugging:** Emoji-prefixed structured logging for production visibility
+
+## 5. User Experience & Interface
+
+### 5.1. Newsletter Content & Mobile Optimization
+-   **Mobile-First Design:** React Email templates optimized for mobile trading apps
+-   **Content Structure:**
+    -   Market context header with VIX and volatility regime
+    -   Individual stock analysis cards with badges and key metrics
+    -   Metrics table with IV/HV ratios, expected moves, RSI, and 5-week ranges
+    -   Strategy recommendations with specific options strategies
+    -   Educational key terms section with volatility and technical indicator definitions
+-   **Visual Design:** Professional typography, color-coded sentiment badges, responsive tables
+
+### 5.2. Subscription Management
+-   **Landing Page:** Clean signup form on Cloudflare Pages with newsletter preview
+-   **Email Compliance:** Automatic unsubscribe headers and Resend broadcast management
+-   **CORS Protection:** Wildcard domain support for preview environments and production
+
+## 6. Configuration & Environment Variables
+
+### 6.1. Required API Keys
+```bash
+FINNHUB_API_KEY=<finnhub_api_key>           # Earnings calendar data
+GEMINI_API_KEY=<gemini_api_key>             # AI analysis generation
+RESEND_API_KEY=<resend_api_key>             # Email delivery service
+```
+
+### 6.2. Core Configuration
+```bash
+AUDIENCE_ID=<resend_audience_id>             # Newsletter subscriber list
+TRIGGER_SECRET=<manual_trigger_secret>       # API endpoint protection
+SUMMARY_EMAIL_RECIPIENT=<admin_email>        # Operational telemetry
+CORS_ORIGINS=https://domain.com,*.pages.dev  # CORS protection
+```
+
+### 6.3. Optional Customization
+```bash
+MAX_OPPORTUNITIES=8                          # Analysis limit (default: 5)
+MIN_DAYS_TO_EARNINGS=1                      # Opportunity window
+MAX_DAYS_TO_EARNINGS=45                     # Extended analysis range
+STOCK_UNIVERSE=AAPL,MSFT,GOOGL              # Custom stock list
+```
+
+## 7. Success Metrics & Performance
+
+### 7.1. System Performance (Current Achievement)
+-   **API Response Times:** 67-255ms for Yahoo Finance quotes (100% reliability)
+-   **Pipeline Completion:** <2 minutes end-to-end with rate limiting
+-   **Cache Efficiency:** ~80% API call reduction during bulk operations
+-   **Test Coverage:** 69/69 tests passing across all components
+-   **Reliability:** Graceful degradation ensures newsletter always delivers
+
+### 7.2. Content Quality Metrics
+-   **Opportunity Discovery:** 3-8 high-quality opportunities per day (configurable)
+-   **AI Analysis Validation:** Multi-layer quality checks reject inconsistent analyses
+-   **Data Accuracy:** Real historical volatility from Yahoo Finance + sophisticated IV estimation
+-   **Technical Indicators:** RSI calculations and 5-week price ranges for comprehensive context
+
+## 8. Deployment & Operations
+
+### 8.1. Production Endpoints
+-   `GET /health` - System liveness probe
+-   `GET /status` - Configuration audit (API keys masked)
+-   `POST /trigger` - Manual pipeline execution (auth: x-trigger-secret)
+-   `POST /subscribe` - CORS-protected subscription management
+
+### 8.2. Monitoring & Observability
+-   **Pipeline Telemetry:** Comprehensive summary emails with step-by-step status
+-   **Error Tracking:** Stack traces with context for debugging
+-   **Performance Monitoring:** Timing data for optimization opportunities
+-   **Newsletter Metrics:** Opportunities found, analyses generated, broadcast delivery confirmation
+
+### 8.3. Operational Excellence
+-   **Zero-Downtime Deployment:** Cloudflare Workers with automatic rollback
+-   **Configuration Validation:** Pre-flight checks for all required environment variables
+-   **Rate Limit Compliance:** Explicit delays and retry logic for external APIs
+-   **Security:** No hardcoded credentials, masked API keys in logs, CORS protection
+
+## 9. Risk Management & Compliance
+
+### 9.1. Financial Disclaimers
+-   **Investment Risk Warnings:** Clear statements about trading risks and potential losses
+-   **Educational Purpose:** Content explicitly marked as educational, not investment advice
+-   **Performance Disclaimers:** Past performance does not guarantee future results
+
+### 9.2. Quality Controls
+-   **Multi-Layer Validation:** AI output validation before newsletter inclusion
+-   **Data Quality Checks:** Fallback systems prevent delivery with corrupted data
+-   **Human Oversight:** Summary emails provide operational visibility and manual review capability
+
+## 10. Future Enhancements (Post-Current Implementation)
+
+### 10.1. Advanced Analytics
+-   **Real-Time Options Data:** Direct options chain integration for precise implied volatility
+-   **Machine Learning Models:** Predictive models for earnings move accuracy
+-   **Backtesting Framework:** Historical strategy performance validation
+
+### 10.2. User Experience Improvements
+-   **Personalized Risk Settings:** Custom risk tolerance for strategy recommendations
+-   **Interactive Dashboard:** Web-based analysis interface with deeper insights
+-   **Performance Tracking:** Historical recommendation success metrics
+
+### 10.3. Content Expansion
+-   **Weekly Market Outlook:** Comprehensive volatility regime analysis
+-   **Educational Series:** Advanced options strategies and risk management content
+-   **Community Features:** User feedback and strategy discussion platform
 
 ## 3. Core Functionality (Enhanced MVP)
 
-### 3.1. Daily Market Scan & Quantitative Analysis
+# Product Requirements Document (PRD): Options Insight Newsletter
 
--   **Trigger:** The system will run automatically every weekday morning at 8:00 AM UTC.
--   **Primary Data Source:** Finnhub API for earnings calendar and basic company data.
--   **Volatility Data Source:** Alpha Vantage API for quotes and historical volatility metrics, with deterministic fallback estimators when premium endpoints are unavailable.
--   **Stock Universe:** The scan will be limited to a curated list of liquid stocks from the S&P 500 and NASDAQ 100 (defined in `src/config.js`).
--   **Advanced Filtering:** The system will use a multi-factor scoring algorithm to identify opportunities based on:
-    -   **Implied Volatility Percentile**: Prioritize stocks with IV > 50th percentile (high volatility environment)
-    -   **Volatility Rank**: Current IV relative to 52-week high/low
-    -   **Options Volume**: Minimum daily options volume for liquidity
-    -   **Days to Earnings**: Optimal time window (7-30 days out)
-    -   **Expected Move**: Calculated from Alpha Vantage pricing data with documented fallback bands when premium data is locked
--   **Output:** Top 5 highest-scoring opportunities with comprehensive volatility metrics.
+## 1. Overview
 
-### 3.2. Enhanced AI-Powered Analysis with Quantitative Foundation
+This document outlines the product requirements for Options Insight, an autonomous Cloudflare Worker that delivers weekday quantitative earnings analysis with volatility-based opportunity identification, AI-powered sentiment analysis, and specific options strategy recommendations to retail traders.
 
--   **Core Engine:** Google Gemini API with enhanced prompt engineering for quantitative analysis.
--   **Data-Rich Prompts:** For each opportunity, the AI receives:
-    -   Current implied volatility and historical percentile
-    -   Historical volatility (30-day, 90-day)
-    -   Expected earnings move and historical move accuracy
-    -   Options chain data and volume metrics
-    -   Technical indicators (RSI, Bollinger Bands)
--   **Required Analysis Output:**
-    -   **Sentiment Score (1-10)**: Quantitative assessment of opportunity quality
-    -   **Recommendation Grade**: "STRONGLY CONSIDER", "NEUTRAL", or "STAY AWAY"
-    -   **Probability of Profit (POP)**: Calculated for each suggested strategy
-    -   **Risk Assessment**: Maximum loss, expected profit, risk/reward ratio
-    -   **Strategy Recommendations**: 2-3 specific options strategies with entry/exit criteria
--   **Quality Control**: Reject recommendations with POP < 55% or inadequate risk/reward ratios.
+## 2. Vision & Goal
 
-### 3.3. Professional Newsletter Delivery with React Email
+**Vision:** To empower retail traders with institutional-grade, quantitative analysis that combines real-time volatility metrics, technical indicators, and AI-driven sentiment analysis to identify high-quality earnings opportunities.
 
--   **Email Service:** Resend API with React Email templates for professional formatting.
+**Goal:** To create a fully autonomous system that scans earnings calendars, performs comprehensive volatility analysis using premium data sources, generates AI recommendations with quality validation, and delivers professional newsletters via mobile-optimized email templates.
+
+## 3. Core Functionality (Current Implementation)
+
+### 3.1. Daily Market Scan & Yahoo Finance Optimized Analysis
+
+-   **Trigger:** Automated execution every weekday morning at 8:00 AM UTC via Cloudflare Workers cron.
+-   **Primary Data Source:** Yahoo Finance API for quotes and historical data (67-255ms response times, 100% reliability).
+-   **Earnings Calendar:** Finnhub API for comprehensive earnings schedule and market context (VIX).
+-   **Stock Universe:** Curated list of liquid S&P 500 and NASDAQ 100 stocks (defined in `src/config.js`).
+-   **Advanced Analytics:** Multi-factor quality scoring algorithm based on:
+    -   **Real Historical Volatility**: 30-day calculated volatility from Yahoo Finance historical data
+    -   **Implied Volatility Estimates**: Sophisticated estimation based on market characteristics
+    -   **Technical Indicators**: RSI calculations and 5-week price ranges
+    -   **Quality Scoring**: Composite score incorporating volatility, timing, and liquidity factors
+    -   **Days to Earnings**: Optimal time window (1-45 days with preference for 14-21 days)
+-   **Performance:** Intelligent 5-minute caching reduces API calls by ~80% during bulk operations.
+
+### 3.2. AI-Powered Analysis with Quantitative Foundation
+
+-   **Core Engine:** Google Gemini Pro with structured prompt engineering for quantitative analysis.
+-   **Rich Data Context:** For each opportunity, AI receives:
+    -   Current price, historical volatility, and implied volatility estimates
+    -   Expected earnings move calculations and percentage impact
+    -   RSI technical indicators and 5-week price range context
+    -   Quality score and volatility ranking relative to universe
+    -   Market regime context (VIX level and volatility environment)
+-   **Structured Analysis Output:**
+    -   **Sentiment Score (1-10)**: Quantitative assessment of opportunity attractiveness
+    -   **Recommendation Classification**: "STRONGLY CONSIDER", "NEUTRAL", or "STAY AWAY"
+    -   **Strategic Options**: 2-3 specific options strategies with entry timing
+    -   **Risk Context**: Volatility assessment and position sizing guidance
+-   **Quality Validation**: Multi-layer validation in `gemini.js` rejects inconsistent or low-quality analyses.
+
+### 3.3. Professional Newsletter Delivery with Mobile Optimization
+
+-   **Email Service:** Resend API with broadcast audience management and automatic unsubscribe handling.
+-   **Template Engine:** React Email with mobile-responsive design optimized for mobile trading apps.
 -   **Enhanced Content Structure:**
-    -   **Executive Summary**: Market volatility overview and day's opportunity count
-    -   **Volatility Dashboard**: VIX level, market IV environment
+    -   **Market Context**: VIX level, volatility regime, and strategy guidance
+    -   **Individual Analysis**: Each stock with sentiment score, recommendation badge, and key metrics
+    -   **Metrics Display**: IV/HV ratios, expected move, quality scores, RSI, and 5-week ranges
+    -   **Strategy Recommendations**: Specific options strategies with entry criteria
+    -   **Educational Content**: Key terms definitions including RSI, volatility concepts, and quality scoring
     -   **Opportunity Analysis**: For each stock:
         -   Company info and earnings date
         -   Volatility metrics (IV percentile, expected move)

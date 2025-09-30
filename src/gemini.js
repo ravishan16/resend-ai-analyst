@@ -1,7 +1,23 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /**
- * Enhanced AI analysis with quantitative data and sentiment scoring
+ * Generate AI-powered trading ideas using Google Gemini
+ * @async
+ * @param {string} apiKey - Google Gemini API key
+ * @param {Array<Object>} opportunities - Array of earnings opportunities from scanner
+ * @param {Object} marketContext - Market volatility context from getMarketContext
+ * @returns {Promise<Array<Object>>} Array of analyzed opportunities with AI insights
+ * @returns {Object[]} returns.analyses - Individual analysis objects
+ * @returns {Object} returns.analyses[].opportunity - Original opportunity data
+ * @returns {Object} returns.analyses[].analysis - AI-generated analysis
+ * @returns {number} returns.analyses[].analysis.sentimentScore - AI sentiment score (1-10)
+ * @returns {string} returns.analyses[].analysis.recommendation - Trade recommendation
+ * @returns {Array} returns.analyses[].analysis.strategies - Suggested options strategies
+ * @returns {string} returns.analyses[].timestamp - Analysis timestamp
+ * @description Core AI analysis engine that processes earnings opportunities through
+ * Google Gemini Pro. Generates sentiment scores, trade recommendations, and specific
+ * options strategies. Includes error handling to continue processing if individual
+ * analyses fail.
  */
 export async function generateTradingIdeas(apiKey, opportunities, marketContext) {
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -189,7 +205,20 @@ function getMarketRegimeDescription(marketContext) {
 }
 
 /**
- * Validate analysis quality and filter out poor recommendations
+ * Validate AI analysis quality and filter out poor recommendations
+ * @param {Object} analysis - AI-generated analysis object to validate
+ * @param {number} analysis.sentimentScore - AI sentiment score (should be 1-10)
+ * @param {string} analysis.recommendation - Trade recommendation 
+ * @param {Array} analysis.strategies - Array of suggested strategies
+ * @returns {Object} Validation result object
+ * @returns {boolean} returns.isValid - Whether analysis passes quality checks
+ * @returns {Array<string>} returns.issues - Array of validation issues found
+ * @description Quality gate function that ensures AI analyses meet minimum standards:
+ * - Sentiment score must be valid (1-10)
+ * - Recommendation must be standard format
+ * - Must include at least one strategy
+ * - Checks for logical consistency (sentiment vs recommendation)
+ * Filters prevent poor quality analyses from reaching newsletter subscribers.
  */
 export function validateAnalysis(analysis) {
     const issues = [];

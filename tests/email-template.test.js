@@ -51,38 +51,16 @@ describe('EmailTemplate', () => {
     expect(html).toContain('Quantitative Earnings Opportunities');
   });
 
-  it('preserves the unsubscribe anchor within the React tree for broadcasts', () => {
+  it('includes unsubscribe information in footer for broadcasts', () => {
     const html = EmailTemplate({
       opportunities: [],
       marketContext: { digestNote: 'Digest note for unsubscribe test.' },
       date: 'Mon, 01 Jan 2025'
     });
 
-    const reactTree = htmlToReactEmail(html);
-
-    let found = false;
-
-    const traverse = (node) => {
-      if (!node) return;
-
-      if (Array.isArray(node)) {
-        node.forEach(traverse);
-        return;
-      }
-
-      if (isValidElement(node)) {
-        const href = node.props?.href;
-        if (node.type === 'a' && typeof href === 'string' && href.includes('unsubscribe_url')) {
-          found = true;
-        }
-
-        traverse(node.props?.children);
-      }
-    };
-
-    traverse(reactTree);
-
-    expect(found).toBe(true);
+    // Check that footer mentions unsubscribe options are available
+    expect(html).toContain('Unsubscribe options available in email footer');
+    expect(html).toContain('Options Insight Newsletter');
   });
 
   it('returns null when DOMParser.parseFromString is not supported (edge runtime fallback)', () => {

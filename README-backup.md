@@ -2,7 +2,12 @@
 
 <p align="left">
    <a href="https://github.com/ravishan16/options-insight/actions/workflows/ci.yml">
-      <img alt="CI" src="https://github.com/ravishan16/options-insight/actions/workflows/ci.yml/badge.svg" />
+      <img alt="CI" src="https://github.com> **Rate-limit performance**
+> - **YaLogs intentionally announce every stage with emoji prefixes for easy parsing. Yahoo Finance successes show response times, while rare fallbacks to Finnhub are clearly marked.oo Finance:** No API limits, sub-200ms response times, 100% reliability
+> - **Smart Caching:** 5-minute TTL reduces API calls by ~80% during bulk operations
+> - **Finnhub:** 60 calls/min free tier—ample for daily earnings scans
+> - **Optimized Delays:** 500ms between requests (down from 1200ms) = 58% faster processing
+> - **Gemini:** Quotas vary by account; failures default to skipping analysis so email still sendsishan16/options-insight/actions/workflows/ci.yml/badge.svg" />
    </a>
    <a href="https://codecov.io/gh/ravishan16/options-insight">
       <img alt="Coverage" src="https://codecov.io/gh/ravishan16/options-insight/branch/main/graph/badge.svg" />
@@ -34,9 +39,9 @@ The modern options workflow is still a patchwork of screeners, spreadsheets, and
 ## How the System Works (Optimized Pipeline)
 1. **Market Radar** – Finnhub's earnings calendar is filtered to a curated universe (`src/config.js`) and a 1–45 day lookahead window.
 2. **Yahoo Finance Primary** – High-performance data provider with **sub-200ms quote responses** and complete historical data coverage. Smart caching reduces redundant API calls during bulk operations.
-3. **Quant Analysis** – `simplified-data.js` calculates real historical volatility, RSI indicators, and 5-week price ranges with composite quality scoring for opportunity ranking.
-4. **AI Briefing** – Google Gemini transforms the quantitative analysis into human-friendly strategy recommendations, validated through quality gates in `gemini.js`.
-5. **Professional Delivery** – Mobile-optimized React Email template with individual stock analysis and Resend broadcast delivery with automatic unsubscribe handling.
+3. **Quant Scoring** – `simplified-data.js` calculates real historical volatility (not estimated) with a composite volatility score feeding opportunity ranking.
+4. **AI Briefing** – Google Gemini transforms the quantitative bundle into human-friendly strategy notes, run through validation guards in `gemini.js`.
+5. **Delivery** – A React Email template renders the briefing and Resend fires the broadcast to the preconfigured audience.
 
 ---
 
@@ -66,8 +71,39 @@ flowchart TD
    classDef delivery fill:#DDBEA9,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
    classDef touch fill:#FAF6F0,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
 
+## TL;DR
+- **What it is:** An autonomous Cloudflare Worker that scans upcoming earnings, enriches them with volatility and sentiment analysis, and delivers a polished newsletter via Resend.
+- **Why it matters:** Retail options traders get institutional-style prep without the manual grind—quantitative stats, AI commentary, and playbook-ready strategies arrive every weekday morning.
+- **Where to look next:** For feature-level details and roadmap, read the companion [Product Requirements Document](PRD.md).
+- **Subscribe:** Preview the latest briefing and join the list at [options-insight.ravishankars.com](https://options-insight.ravishankars.com/).
+
+---
+
+## Why this Exists
+The modern options workflow is still a patchwork of screeners, spreadsheets, and ad-hoc AI prompts. Options Insight packages that routine into a deterministic, reviewable pipeline. Every run follows the same recipe—scan > filter > analyze > narrate > publish—so traders start their day with context they can trust rather than intuition they have to second-guess.
+
+---
+
+## How the System Works (Narrative Flow)
+1. **Market Radar** – Finnhub’s earnings calendar is filtered to a curated universe (`src/config.js`) and a 1–45 day lookahead window.
+2. **Volatility Intelligence** – Alpha Vantage powers live quotes and (where available) historical vol. When premium endpoints are locked, the system transparently falls back to estimated ranges so the pipeline never stalls.
+3. **Quant Scoring** – `real-volatility.js` calculates expected move, IV rank, and a composite volatility score that feeds opportunity ranking.
+4. **AI Briefing** – Google Gemini transforms the quantitative bundle into human-friendly strategy notes, run through validation guards in `gemini.js`.
+5. **Delivery** – A React Email template renders the briefing and Resend fires the broadcast to the preconfigured audience.
+
+---
+
+## Architecture at a Glance
+
+```mermaid
+flowchart TD
+   classDef data fill:#F3E2D5,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
+   classDef worker fill:#FDFDFD,stroke:#E4C590,stroke-width:1.6px,color:#3A3A3A
+   classDef delivery fill:#DDBEA9,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
+   classDef touch fill:#FAF6F0,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
+
    F["📅 Finnhub<br/>Earnings Calendar"]:::data
-   Y["🚀 Yahoo Finance<br/>Quotes & Historical Data<br/>(Primary - 100% reliable)"]:::data
+   Y["� Yahoo Finance<br/>Quotes & Historical Data<br/>(Primary - 100% reliable)"]:::data
    FH["💼 Finnhub<br/>Quote Fallback<br/>(Rare usage)"]:::data
    G["🧠 Google Gemini<br/>Narrative AI"]:::data
 
@@ -103,6 +139,12 @@ The system pairs market intelligence with the human journey: traders discover th
 - **Smart Caching:** 5-minute TTL reduces API calls during bulk operations  
 - **Graceful Fallbacks:** Finnhub backup (rarely used) ensures zero downtime
 - **Real Data Focus:** Historical volatility calculations using actual market data
+
+The system pairs market intelligence with the human journey: traders discover the signup page, opt in via the Worker’s protected `/subscribe` endpoint, get added to the Resend audience, and receive daily research with an always-on unsubscribe loop managed by Resend.
+
+- **Subscriber Persona (Retail Trader):** Action-oriented options trader seeking pre-market context and volatility guidance.
+- **Signup Touchpoint:** Branded Cloudflare Pages microsite funnels interest straight into the Worker’s CORS-guarded subscription endpoint.
+- **Retention & Trust:** Every briefing flows through Resend broadcasts, honoring unsubscribe requests without additional infrastructure.
 
 ---
 
@@ -164,12 +206,10 @@ SUMMARY_EMAIL_RECIPIENT=********@gmail.com
 # SUMMARY_EMAIL_FROM=alerts@ravishankars.com
 ```
 
-> **Rate-limit performance**
-> - **Yahoo Finance:** No API limits, sub-200ms response times, 100% reliability
-> - **Smart Caching:** 5-minute TTL reduces API calls by ~80% during bulk operations
-> - **Finnhub:** 60 calls/min free tier—ample for daily earnings scans
-> - **Optimized Delays:** 500ms between requests (down from 1200ms) = 58% faster processing
-> - **Gemini:** Quotas vary by account; failures default to skipping analysis so email still sends
+> **Rate-limit snapshot**
+> - Alpha Vantage free tier allows 25 calls/day. The worker staggers calls (15 s gaps) and falls back to calibrated estimates when premium data is locked.
+> - Finnhub free tier handles 60 calls/min—ample for daily scans.
+> - Gemini quotas vary by account; failures default to skipping the analysis so the email still sends.
 
 ### 3. Run Sanity Tests
 ```sh
@@ -198,7 +238,7 @@ open email-preview.html
 | Review run summary | Automatic | Every run sends a status email (success/errors, metrics) to `SUMMARY_EMAIL_RECIPIENT` via Resend |
 | Public signup form | `pages/` | Static Cloudflare Pages site that posts to `/subscribe` and adds contacts to the configured Resend audience |
 
-Logs intentionally announce every stage with emoji prefixes for easy parsing. Yahoo Finance successes show response times, while rare fallbacks to Finnhub are clearly marked.
+Logs intentionally announce every stage. When Alpha Vantage returns premium notices, you’ll see the fallback estimation path in the transcript.
 
 ---
 
@@ -226,6 +266,37 @@ Logs intentionally announce every stage with emoji prefixes for easy parsing. Ya
 - `GET /status` – API key inventory (masked) + readiness flag
 - `POST /trigger` – Run the full pipeline on demand (requires `x-trigger-secret` header matching `TRIGGER_AUTH_SECRET`)
 - `POST /subscribe` – CORS-protected endpoint for the Cloudflare Pages signup form. Only accepts requests from `SIGNUP_ALLOWED_ORIGINS` (defaults include local dev + Pages preview)
+
+### Cloudflare Pages Signup Flow
+
+The `/pages` directory contains a lightweight, branded signup experience that talks to the Worker’s `/subscribe` endpoint.
+
+1. **Preview locally** – Open `pages/index.html` directly in the browser or serve it with any static HTTP server.
+2. **Configure allowed origins** – Set `SIGNUP_ALLOWED_ORIGINS` in `.env` (comma-separated) and run `make push-secrets` so only trusted hosts can call `/subscribe`.
+3. **Deploy to Cloudflare Pages** – Point a Pages project at the repository (directory `pages/`), or upload the contents manually. Cloudflare assigns a production domain like `https://options-insight-signup.pages.dev` and per-commit preview URLs (e.g. `https://<hash>.options-insight-signup.pages.dev`). The form auto-detects the production API and falls back to the default Worker URL.
+4. **Unsubscribe support** – Resend automatically injects `{{{ unsubscribe_url }}}` into the React Email footer, so every broadcast includes a first-party opt-out link.
+
+> **CI automation:** The `Deploy Cloudflare Pages Signup` GitHub Action now builds preview deployments for pull requests (surfacing the URL in the Actions log) and pushes the `pages/` directory to your Cloudflare Pages project (`options-insight-signup` by default) on every merge to `main`. Configure the same `CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN` secrets used for the Worker and grant the token Pages access.
+
+> **Manual deploy:** Run `make deploy-pages` to publish from your local machine. Override the project name with `PROJECT_NAME=your-pages-project make deploy-pages` if you use a different name.
+
+> **Note:** The signup form collects `email` (required) and `firstName` (optional) and tags the contact with the acquisition source in Resend. Submissions from disallowed origins return a 403 with a descriptive error.
+
+### Brand palette
+
+The public signup page mirrors the warm palette from [ravishankars.com](https://ravishankars.com/). Key CSS variables (see `pages/styles.css`) include:
+
+| Variable | Hex | Description |
+| --- | --- | --- |
+| `--bg` | `#FAF6F0` | Ivory Linen background |
+| `--surface` | `#FDFDFD` | Porcelain cards and surfaces |
+| `--text` | `#3A3A3A` | Charcoal Plum headings |
+| `--muted` | `#7C6F64` | Warm Taupe body copy |
+| `--primary` | `#DDBEA9` | Soft Clay buttons and accents |
+| `--primary-dark` | `#B45F4D` | Terracotta hover state |
+| `--border`/`--accent` | `#E4C590` | Gold Sand dividers, tags, and pill outlines |
+
+Use the same variables when extending the marketing experience to keep the Properties brand consistent.
 
 ---
 
@@ -275,6 +346,8 @@ Coverage reports are automatically generated and uploaded to [Codecov](https://c
 
 ---
 
+## Public Signup Page
+
 ## Roadmap & Next Bets
 Directly aligned with the PRD:
 
@@ -292,13 +365,11 @@ Community improvements are welcome! Please read the [contributing guide](CONTRIB
 
 > **CI checks**: Every pull request runs an automated Wrangler dry-run compile on GitHub Actions (Node.js 20). Please make sure `npx wrangler deploy --dry-run` succeeds locally before pushing.
 
----
+> **Run notifications**: After each scheduled or manual execution the worker emails a summary (status, metrics, warnings, and errors) to `SUMMARY_EMAIL_RECIPIENT` using Resend. Set this in your environment or accept the default maintainer address.
 
 ## Security Policy
 
 Sensitive findings should **not** be reported through public issues. Instead, open a [private security advisory](https://github.com/ravishan16/options-insight/security/advisories/new) with detailed reproduction steps, or contact the maintainer directly via the email address on their GitHub profile. We will acknowledge reports within 72 hours.
-
----
 
 ## License
 
@@ -315,4 +386,4 @@ This repository is licensed under the [MIT License](LICENSE). When contributing,
 
 ## Further Reading
 - [Product Requirements Document](PRD.md) – Full background, success metrics, and future roadmap.
-- `src/` – Component implementations referenced above (`finnhub.js`, `simplified-data.js`, `gemini.js`, `email-template.js`).
+- `src/` – Component implementations referenced above (`finnhub.js`, `real-volatility.js`, `gemini.js`, `email-template.js`).

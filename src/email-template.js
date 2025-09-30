@@ -80,33 +80,36 @@ const EmailTemplate = ({
             </table>
             
             <!-- Compact Metrics Table -->
-            <table class="metrics-table" style="width: 100%; font-size: 11px; color: ${palette.text};">
+            <table class="metrics-table" style="width: 100%; font-size: 11px; color: ${palette.text}; border-collapse: collapse;">
               <tr>
-                <td style="padding: 4px 0; font-weight: 500;">IV/HV:</td>
-                <td style="padding: 4px 0;">${vol.impliedVolatility?.toFixed(1) || 'N/A'}% / ${vol.historicalVolatility?.toFixed(1) || 'N/A'}%</td>
-                <td style="padding: 4px 0; font-weight: 500;">Expected Move:</td>
-                <td style="padding: 4px 0;">${vol.expectedMove && vol.currentPrice ? 
+                <td style="padding: 4px 8px 4px 0; font-weight: 500; width: 20%;">IV/HV:</td>
+                <td style="padding: 4px 8px 4px 0; width: 30%;">${vol.impliedVolatility?.toFixed(1) || 'N/A'}% / ${vol.historicalVolatility?.toFixed(1) || 'N/A'}%</td>
+                <td style="padding: 4px 8px 4px 0; font-weight: 500; width: 20%;">Expected Move:</td>
+                <td style="padding: 4px 0; width: 30%;">${vol.expectedMove && vol.currentPrice ? 
                   `${((vol.expectedMove / vol.currentPrice) * 100).toFixed(1)}% ($${vol.expectedMove.toFixed(2)})` : 'N/A'}</td>
               </tr>
               <tr>
-                <td style="padding: 4px 0; font-weight: 500;">Quality:</td>
-                <td style="padding: 4px 0; color: ${opp.qualityScore >= 70 ? palette.primaryDark : opp.qualityScore >= 40 ? palette.accent : palette.muted}; font-weight: 600;">
+                <td style="padding: 4px 8px 4px 0; font-weight: 500;">Quality:</td>
+                <td style="padding: 4px 8px 4px 0; color: ${opp.qualityScore >= 70 ? palette.primaryDark : opp.qualityScore >= 40 ? palette.accent : palette.muted}; font-weight: 600;">
                   ${opp.qualityScore || 'N/A'}/100
                 </td>
-                <td style="padding: 4px 0; font-weight: 500;">Vol Status:</td>
+                <td style="padding: 4px 8px 4px 0; font-weight: 500;">Vol Status:</td>
                 <td style="padding: 4px 0; color: ${vol.impliedVolatility && vol.historicalVolatility && vol.impliedVolatility > vol.historicalVolatility ? palette.primaryDark : palette.muted}; font-weight: 500;">
                   ${vol.impliedVolatility && vol.historicalVolatility ? 
                     (vol.impliedVolatility > vol.historicalVolatility ? 'High' : 'Normal') : 'N/A'}
                 </td>
               </tr>
               <tr>
-                <td style="padding: 4px 0; font-weight: 500;">RSI:</td>
-                <td style="padding: 4px 0; color: ${vol.technicalIndicators?.rsi ? 
+                <td style="padding: 4px 8px 4px 0; font-weight: 500;">RSI:</td>
+                <td style="padding: 4px 8px 4px 0; color: ${vol.technicalIndicators?.rsi ? 
                   (vol.technicalIndicators.rsi > 70 ? palette.primaryDark : vol.technicalIndicators.rsi < 30 ? palette.primary : palette.muted) : palette.muted};">
                   ${vol.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
                 </td>
-                <td style="padding: 4px 0; font-weight: 500;">Options Volume:</td>
-                <td style="padding: 4px 0;">${vol.optionsVolume ? vol.optionsVolume.toLocaleString() : 'N/A'}</td>
+                <td style="padding: 4px 8px 4px 0; font-weight: 500;">52W Range:</td>
+                <td style="padding: 4px 0; font-size: 10px;">
+                  ${vol.weeklyRange ? 
+                    `$${vol.weeklyRange.low} - $${vol.weeklyRange.high}` : 'N/A'}
+                </td>
               </tr>
             </table>
             
@@ -145,6 +148,8 @@ const EmailTemplate = ({
             .container {
               width: 100% !important;
               max-width: 100% !important;
+              margin: 0 !important;
+              border-radius: 0 !important;
             }
             .content {
               padding: 16px !important;
@@ -156,9 +161,12 @@ const EmailTemplate = ({
               margin: 8px 0 !important;
               padding: 12px !important;
             }
-            .metrics-table td {
+            .metrics-table {
               font-size: 10px !important;
-              padding: 2px 0 !important;
+            }
+            .metrics-table td {
+              padding: 3px 4px 3px 0 !important;
+              vertical-align: top !important;
             }
             .header-table {
               display: block !important;
@@ -171,13 +179,28 @@ const EmailTemplate = ({
               width: 100% !important;
               text-align: left !important;
               margin-bottom: 4px;
+              padding: 2px 0 !important;
             }
             .sentiment-score {
               text-align: left !important;
               margin-top: 8px;
             }
+            .sentiment-score table {
+              margin: 0 !important;
+            }
             .recommendation-badge {
-              margin-left: 8px !important;
+              margin-left: 0 !important;
+              margin-top: 4px !important;
+              display: inline-block !important;
+            }
+            h1 {
+              font-size: 22px !important;
+            }
+            h2 {
+              font-size: 14px !important;
+            }
+            h3 {
+              font-size: 13px !important;
             }
           }
         </style>
@@ -237,7 +260,9 @@ const EmailTemplate = ({
             <div style="font-size: 11px; color: ${palette.muted}; line-height: 1.5;">
               <div style="margin-bottom: 6px;"><strong>IV (Implied Volatility):</strong> Market's expectation of future price movement</div>
               <div style="margin-bottom: 6px;"><strong>HV (Historical Volatility):</strong> Past 30-day realized price movement</div>
+              <div style="margin-bottom: 6px;"><strong>RSI (Relative Strength Index):</strong> Momentum indicator (0-100); >70 overbought, <30 oversold</div>
               <div style="margin-bottom: 6px;"><strong>Expected Move:</strong> Predicted price range through earnings (1 std dev)</div>
+              <div style="margin-bottom: 6px;"><strong>52W Range:</strong> 52-week high/low price range for recent context</div>
               <div><strong>Quality Score:</strong> Composite ranking based on liquidity, volume, and data reliability</div>
             </div>
           </div>
@@ -272,7 +297,7 @@ const EmailTemplate = ({
               This newsletter is for educational purposes only and should not be considered personalized investment advice.
             </p>
             <p style="font-size: 10px; color: ${palette.muted}; margin: 12px 0 0 0;">
-              <a href="{{{unsubscribe_url}}}" style="color: ${palette.primaryDark}; text-decoration: underline;">Unsubscribe</a>
+              Options Insight Newsletter • Unsubscribe options available in email footer
             </p>
           </div>
         </div>
