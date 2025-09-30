@@ -6,9 +6,12 @@
   "description": "Quantitative earnings opportunities newsletter with volatility analysis and systematic research automation",
   "scripts": {
     "deploy": "wrangler deploy",
-    "start": "wrangler dev"
+    "start": "wrangler dev",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
   },
   "devDependencies": {
+    "vitest": "^3.2.4",
     "wrangler": "^4.40.2"
   },
   "dependencies": {

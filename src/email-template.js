@@ -19,6 +19,8 @@ const EmailTemplate = ({
   date = new Date().toDateString() 
 }) => {
 
+  const digestNote = marketContext?.digestNote;
+
   const getSentimentColor = (score) => {
     if (score >= 8) return palette.primaryDark;
     if (score >= 6) return palette.primary;
@@ -199,6 +201,7 @@ const EmailTemplate = ({
               Today's analysis identified <strong>${opportunities.length} high-quality earnings opportunities</strong> using volatility 
               analysis, technical indicators, and AI-powered sentiment scoring.
             </p>
+            ${digestNote ? `<p style="margin: 12px 0 0 0; font-size: 13px; color: ${palette.muted}; line-height: 1.6;">${digestNote}</p>` : ''}
           </div>
 
           <!-- Opportunities -->

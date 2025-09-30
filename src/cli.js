@@ -187,9 +187,14 @@ async function testEmail() {
     console.log('📧 Testing email template and delivery...');
     const resendApiKey = process.env.RESEND_API_KEY;
     const geminiApiKey = process.env.GEMINI_API_KEY;
+    const audienceId = process.env.AUDIENCE_ID;
     
     if (!resendApiKey || !geminiApiKey) {
         throw new Error('RESEND_API_KEY or GEMINI_API_KEY environment variable is not set');
+    }
+
+    if (!audienceId) {
+        throw new Error('AUDIENCE_ID environment variable is not set');
     }
     
     // Use mock data for testing
@@ -225,7 +230,7 @@ async function testEmail() {
     };
     
     console.log('Sending test email...');
-    const result = await sendEmailDigest(resendApiKey, mockContent, mockMarketContext);
+    const result = await sendEmailDigest(resendApiKey, audienceId, mockContent, mockMarketContext);
     console.log(`✅ Email sent successfully - Broadcast ID: ${result.broadcastId}`);
 }
 
@@ -272,10 +277,14 @@ async function testPipeline() {
 async function testFullRun() {
     console.log('🎯 Simulating complete daily run...');
     
-    const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, GEMINI_API_KEY, RESEND_API_KEY } = process.env;
+    const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, AUDIENCE_ID } = process.env;
     
     if (!FINNHUB_API_KEY || !GEMINI_API_KEY || !RESEND_API_KEY) {
         throw new Error('Missing required API keys (FINNHUB_API_KEY, GEMINI_API_KEY, RESEND_API_KEY)');
+    }
+
+    if (!AUDIENCE_ID) {
+        throw new Error('AUDIENCE_ID environment variable is not set');
     }
     
     try {
@@ -297,7 +306,7 @@ async function testFullRun() {
         console.log(`   ✅ Generated ${emailContent.length} analyses`);
         
         console.log('4. 📧 Sending newsletter...');
-        const result = await sendEmailDigest(RESEND_API_KEY, emailContent, marketContext);
+    const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, emailContent, marketContext);
         console.log(`   ✅ Newsletter sent - Broadcast ID: ${result.broadcastId}`);
         
         console.log('\n🎉 Full run completed successfully!');

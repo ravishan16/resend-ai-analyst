@@ -233,7 +233,8 @@ async function processAndSendDigest(env) {
     };
 
     try {
-        const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, RESEND_API_KEY, GEMINI_API_KEY, AUDIENCE_ID } = env;
+    const { FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY, RESEND_API_KEY, GEMINI_API_KEY, AUDIENCE_ID } = env;
+    let marketContext = null;
 
         beginStep('Validate environment');
         const missingKeys = ['FINNHUB_API_KEY', 'RESEND_API_KEY', 'GEMINI_API_KEY', 'AUDIENCE_ID'].filter(key => !env[key]);
@@ -276,8 +277,40 @@ async function processAndSendDigest(env) {
             console.log("ℹ️  No qualifying earnings opportunities found today.");
             beginStep('Generate AI analysis');
             completeStep('skipped', 'No opportunities available');
+
+            beginStep('Fetch market context');
+            try {
+                marketContext = await getMarketContext(FINNHUB_API_KEY);
+                summary.metrics.vix = marketContext.vix;
+                summary.metrics.marketRegime = marketContext.marketRegime;
+                completeStep('success', `VIX ${marketContext.vix?.toFixed(1) ?? 'N/A'}, Regime: ${marketContext.marketRegime || 'Unknown'}`);
+            } catch (error) {
+                console.warn('⚠️  Failed to fetch market context for fallback digest:', error);
+                completeStep('warning', `Market context unavailable: ${error.message}`);
+                marketContext = marketContext || {};
+            }
+
+            const digestNote = 'No qualifying earnings setups cleared the filters today—delivering context only.';
+            const contextPayload = { ...(marketContext || {}), digestNote };
+
             beginStep('Send newsletter');
-            completeStep('skipped', 'No analyses to deliver');
+            const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
+                from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com',
+                subjectTag: 'No Screened Setups',
+                opportunityCount: 0
+            });
+            summary.metrics.newsletterSent = true;
+            summary.metrics.broadcastId = result.broadcastId;
+            summary.metrics.recipientCount = result.recipientCount;
+            summary.metrics.completedAt = result.timestamp;
+            summary.metrics.newsletterReason = 'no-opportunities';
+            summary.metrics.newsletterNote = digestNote;
+            completeStep('success', `Broadcast ${result.broadcastId} dispatched (no opportunities)`);
+
+            console.log(`🎉 Context-only update sent successfully!`);
+            console.log(`   📧 Broadcast ID: ${result.broadcastId}`);
+            console.log(`   🕒 Completed at: ${result.timestamp}`);
+
             return finalizeSummary(summary, startTime);
         }
 
@@ -285,7 +318,7 @@ async function processAndSendDigest(env) {
 
         beginStep('Fetch market context');
         console.log("🌍 Step 2: Getting market context...");
-        const marketContext = await getMarketContext(FINNHUB_API_KEY);
+    marketContext = await getMarketContext(FINNHUB_API_KEY);
         summary.metrics.vix = marketContext.vix;
         summary.metrics.marketRegime = marketContext.marketRegime;
         completeStep('success', `VIX ${marketContext.vix?.toFixed(1) ?? 'N/A'}, Regime: ${marketContext.marketRegime}`);
@@ -293,12 +326,12 @@ async function processAndSendDigest(env) {
 
         beginStep('Generate AI analysis');
         console.log("🤖 Step 3: Generating AI analysis...");
-        const emailContent = await generateTradingIdeas(GEMINI_API_KEY, opportunities, marketContext);
+    const emailContent = await generateTradingIdeas(GEMINI_API_KEY, opportunities, marketContext);
         summary.metrics.generatedAnalyses = emailContent.length;
         completeStep('success', `Generated ${emailContent.length} analyses`);
 
         beginStep('Validate analyses');
-        const validatedContent = emailContent.filter(item => {
+    const validatedContent = emailContent.filter(item => {
             const validation = validateAnalysis(item.analysis);
             if (!validation.isValid) {
                 console.warn(`⚠️  Filtering out ${item.opportunity.symbol} due to: ${validation.issues.join(', ')}`);
@@ -316,8 +349,27 @@ async function processAndSendDigest(env) {
 
         if (validatedContent.length === 0) {
             console.log("ℹ️  No analyses passed validation - newsletter will not be sent");
+            const digestNote = 'All screened names were held by the quality gate—see context below while we wait for better setups.';
+            const contextPayload = { ...(marketContext || {}), digestNote };
+
             beginStep('Send newsletter');
-            completeStep('skipped', 'No validated analyses to send');
+            const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
+                from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com',
+                subjectTag: 'Quality Gate Hold',
+                opportunityCount: 0
+            });
+            summary.metrics.newsletterSent = true;
+            summary.metrics.broadcastId = result.broadcastId;
+            summary.metrics.recipientCount = result.recipientCount;
+            summary.metrics.completedAt = result.timestamp;
+            summary.metrics.newsletterReason = 'quality-gate';
+            summary.metrics.newsletterNote = digestNote;
+            completeStep('success', `Broadcast ${result.broadcastId} dispatched (quality gate hold)`);
+
+            console.log(`🎉 Context-only update sent successfully!`);
+            console.log(`   📧 Broadcast ID: ${result.broadcastId}`);
+            console.log(`   🕒 Completed at: ${result.timestamp}`);
+
             return finalizeSummary(summary, startTime);
         }
 
@@ -326,12 +378,14 @@ async function processAndSendDigest(env) {
         beginStep('Send newsletter');
         console.log("📧 Step 4: Sending newsletter...");
         const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, validatedContent, marketContext, {
-            from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com'
+            from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com',
+            opportunityCount: validatedContent.length
         });
         summary.metrics.newsletterSent = true;
         summary.metrics.broadcastId = result.broadcastId;
         summary.metrics.recipientCount = result.recipientCount;
         summary.metrics.completedAt = result.timestamp;
+        summary.metrics.newsletterReason = 'opportunities-published';
         completeStep('success', `Broadcast ${result.broadcastId} dispatched`);
 
         console.log(`🎉 Newsletter sent successfully!`);
