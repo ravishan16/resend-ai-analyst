@@ -98,7 +98,7 @@ GEMINI_API_KEY=your_gemini_key
 RESEND_API_KEY=your_resend_key
 AUDIENCE_ID=your_resend_audience_id
 TRIGGER_AUTH_SECRET=your_shared_secret
-SUMMARY_EMAIL_RECIPIENT=ravishankar.sivasubramaniam@gmail.com
+SUMMARY_EMAIL_RECIPIENT=********@gmail.com
 # Optional: restrict who can call POST /subscribe (comma-separated origins)
 # SIGNUP_ALLOWED_ORIGINS=https://options-insight.pages.dev,https://yourdomain.com
 # Optional override (defaults to alerts@ravishankars.com)
