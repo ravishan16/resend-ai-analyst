@@ -282,24 +282,24 @@ This document outlines the product requirements for Options Insight, an autonomo
 
 -   **Compute:** Cloudflare Workers (scheduled cron job) with enhanced error handling and retry logic.
 -   **Financial Data:** 
-    -   **Primary:** Finnhub API for earnings calendar and company fundamentals
-    -   **Volatility Data:** Alpha Vantage API for live quotes, historical volatility, and expected move calculations with calibrated fallback estimators when premium data is inaccessible
+    -   **Primary:** Yahoo Finance API for quotes and historical volatility (100% reliable, sub-200ms response times)
+    -   **Secondary:** Finnhub API for earnings calendar, market context (VIX), and quote fallback
 -   **AI Engine:** Google Gemini API with advanced prompt engineering for quantitative analysis.
 -   **Email Delivery:** Resend API with React Email templates for professional formatting.
 -   **Local Development:** Comprehensive Makefile with individual component testing capabilities.
--   **Data Processing:** Multi-stage pipeline with volatility analysis, POP calculations, and sentiment scoring.
+-   **Data Processing:** Multi-stage pipeline with volatility analysis, quality scoring, and sentiment analysis.
 
 ## 5. Key Performance Metrics
 
 ### 5.1. Data Quality Metrics
 -   **Volatility Coverage**: Percentage of opportunities with IV > 50th percentile
 -   **Data Completeness**: Success rate of fetching required options and volatility data
--   **API Reliability**: Uptime and response time for Alpha Vantage and Finnhub APIs, including fallback activation rate
+-   **API Reliability**: Uptime and response time for Yahoo Finance and Finnhub APIs, with Yahoo Finance primary reliability
 
 ### 5.2. Analysis Quality Metrics
 -   **Recommendation Distribution**: Balance of "STRONGLY CONSIDER" vs "STAY AWAY" recommendations
--   **POP Accuracy**: Track actual vs predicted probability of profit over time
--   **Sentiment Score Validation**: Correlation between sentiment scores and actual market performance
+-   **Sentiment Score Accuracy**: Track actual vs predicted sentiment performance over time
+-   **Quality Score Validation**: Correlation between quality scores and actual trading outcomes
 
 ### 5.3. System Performance Metrics
 -   **Execution Time**: Total processing time from data fetch to email delivery
@@ -314,7 +314,7 @@ This document outlines the product requirements for Options Insight, an autonomo
 -   **Stop Loss Suggestions**: Clear exit criteria for losing trades
 
 ### 6.2. Quality Controls
--   **POP Thresholds**: Minimum probability of profit requirements (55%+)
+-   **Quality Score Thresholds**: Minimum quality score requirements (70+/100)
 -   **Volatility Filters**: Reject opportunities with insufficient volatility or liquidity
 -   **Secure Manual Trigger**: `/trigger` endpoint must require a signed shared-secret header to prevent unauthorized newsletter sends
 -   **Run Status Notifications**: After every scheduled or manual run, email a Resend summary (status, metrics, errors) to the maintainer for operational visibility

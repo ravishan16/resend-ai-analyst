@@ -580,37 +580,56 @@ class SimplifiedDataProvider {
     calculateVolatilityScore(analysis) {
         let score = 0;
 
-        // Historical volatility score (0-30 points)
+        // Historical volatility score (0-30 points) - more granular scoring
         if (analysis.historicalVolatility) {
             const hv = analysis.historicalVolatility;
-            if (hv >= 20 && hv <= 50) score += 30;
-            else if (hv >= 15 && hv <= 60) score += 25;
-            else if (hv >= 10) score += 20;
+            if (hv >= 35) score += Math.min(30, 20 + (hv - 35) * 0.5); // Higher vol gets more points
+            else if (hv >= 25) score += 25 + (hv - 25) * 0.5; // 25-30 points
+            else if (hv >= 15) score += 15 + (hv - 15) * 1.0; // 15-25 points
+            else if (hv >= 10) score += 10 + (hv - 10) * 1.0; // 10-15 points
+            else score += hv * 1.0; // 0-10 points
         }
 
-        // Implied volatility score (0-25 points)
+        // Implied volatility score (0-25 points) - granular based on actual value
         if (analysis.impliedVolatility) {
             const iv = analysis.impliedVolatility;
-            if (iv >= 25 && iv <= 55) score += 25;
-            else if (iv >= 20 && iv <= 65) score += 20;
-            else if (iv >= 15) score += 15;
+            if (iv >= 40) score += Math.min(25, 20 + (iv - 40) * 0.25); // Cap at 25
+            else if (iv >= 25) score += 15 + (iv - 25) * 0.33; // 15-20 points
+            else if (iv >= 15) score += 10 + (iv - 15) * 0.5; // 10-15 points
+            else score += iv * 0.67; // 0-10 points
         }
 
-        // Price action score (0-20 points)
-        if (analysis.currentPrice >= 20 && analysis.currentPrice <= 500) score += 20;
-        else if (analysis.currentPrice >= 10) score += 15;
+        // Price action score (0-20 points) - smooth curve instead of bands
+        if (analysis.currentPrice) {
+            const price = analysis.currentPrice;
+            if (price >= 500) score += 20;
+            else if (price >= 100) score += 15 + (price - 100) / 80; // 15-20 points
+            else if (price >= 20) score += 10 + (price - 20) / 16; // 10-15 points
+            else if (price >= 10) score += 5 + (price - 10) / 2; // 5-10 points
+            else score += price / 2; // 0-5 points
+        }
 
         // Data quality bonus (0-15 points)
         if (analysis.dataQuality === 'real') score += 15;
         else score += 8; // Partial credit for estimates
 
-        // Volume/liquidity proxy (0-10 points)
-        if (analysis.volume && analysis.volume > 1000000) score += 10;
-        else if (analysis.volume && analysis.volume > 500000) score += 8;
-        else if (analysis.volume && analysis.volume > 100000) score += 5;
-        else score += 3; // Default for no volume data
+        // Volume/liquidity proxy (0-10 points) - more granular
+        if (analysis.volume) {
+            const vol = analysis.volume;
+            if (vol >= 5000000) score += 10;
+            else if (vol >= 2000000) score += 8 + (vol - 2000000) / 1500000; // 8-9 points
+            else if (vol >= 1000000) score += 6 + (vol - 1000000) / 500000; // 6-8 points
+            else if (vol >= 500000) score += 4 + (vol - 500000) / 250000; // 4-6 points
+            else if (vol >= 100000) score += 2 + (vol - 100000) / 200000; // 2-4 points
+            else score += vol / 50000; // 0-2 points
+        } else {
+            score += 3; // Default for no volume data
+        }
 
-        return Math.min(100, Math.max(0, score));
+        // Add small randomization to break ties (±0.5 points)
+        const tieBreaker = (Math.random() - 0.5) * 1.0;
+
+        return Math.min(100, Math.max(0, Math.round((score + tieBreaker) * 10) / 10));
     }
 
     /**

@@ -105,7 +105,7 @@ const EmailTemplate = ({
                   (vol.technicalIndicators.rsi > 70 ? palette.primaryDark : vol.technicalIndicators.rsi < 30 ? palette.primary : palette.muted) : palette.muted};">
                   ${vol.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
                 </td>
-                <td style="padding: 4px 8px 4px 0; font-weight: 500;">52W Range:</td>
+                <td style="padding: 4px 8px 4px 0; font-weight: 500;">5W Range:</td>
                 <td style="padding: 4px 0; font-size: 10px;">
                   ${vol.weeklyRange ? 
                     `$${vol.weeklyRange.low} - $${vol.weeklyRange.high}` : 'N/A'}
@@ -262,7 +262,7 @@ const EmailTemplate = ({
               <div style="margin-bottom: 6px;"><strong>HV (Historical Volatility):</strong> Past 30-day realized price movement</div>
               <div style="margin-bottom: 6px;"><strong>RSI (Relative Strength Index):</strong> Momentum indicator (0-100); >70 overbought, <30 oversold</div>
               <div style="margin-bottom: 6px;"><strong>Expected Move:</strong> Predicted price range through earnings (1 std dev)</div>
-              <div style="margin-bottom: 6px;"><strong>52W Range:</strong> 52-week high/low price range for recent context</div>
+              <div style="margin-bottom: 6px;"><strong>5W Range:</strong> 5-week high/low price range for recent context</div>
               <div><strong>Quality Score:</strong> Composite ranking based on liquidity, volume, and data reliability</div>
             </div>
           </div>
@@ -290,7 +290,7 @@ const EmailTemplate = ({
           <!-- Footer -->
           <div style="padding: 22px 28px; background-color: ${palette.background}; border-top: 1px solid ${palette.accent}; text-align: center;">
             <p style="font-size: 11px; color: ${palette.muted}; margin: 0 0 8px 0; line-height: 1.5;">
-              Powered by Finnhub, Alpha Vantage, and Google Gemini
+              Powered by Finnhub, Yahoo Finance, and Google Gemini
             </p>
             <p style="font-size: 10px; color: ${palette.muted}; margin: 0; line-height: 1.4;">
               Options trading involves risk. Past performance does not guarantee future results. 
