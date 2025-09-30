@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import EmailTemplate from './email-template.js';
+import htmlToReactEmail from './email-renderer.js';
 
 /**
  * Enhanced email delivery with React Email template
@@ -25,13 +26,21 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
             date: today
         });
 
+        const reactContent = htmlToReactEmail(htmlContent);
+
         console.log("Creating broadcast draft with React Email template...");
-        const { data: createData, error: createError } = await resend.broadcasts.create({
+        const broadcastPayload = {
             from,
             audienceId: audienceId,
             subject: `🎯 Options Insight - ${today} (${subjectTag})`,
-            html: htmlContent,
-        });
+            html: htmlContent
+        };
+
+        if (reactContent) {
+            broadcastPayload.react = reactContent;
+        }
+
+        const { data: createData, error: createError } = await resend.broadcasts.create(broadcastPayload);
 
         if (createError) {
             throw new Error(`Resend API (create) failed: ${JSON.stringify(createError)}`);

@@ -291,25 +291,72 @@ async function testFullRun() {
         console.log('1. 📊 Scanning earnings opportunities...');
         const opportunities = await getEarningsOpportunities(FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY);
         console.log(`   ✅ Found ${opportunities.length} qualified opportunities`);
-        
-        if (opportunities.length === 0) {
-            console.log('   ℹ️  No opportunities found - newsletter will not be sent');
-            return;
-        }
-        
+
         console.log('2. 🌍 Getting market context...');
         const marketContext = await getMarketContext(FINNHUB_API_KEY);
         console.log(`   ✅ VIX: ${marketContext.vix?.toFixed(1)} | Regime: ${marketContext.marketRegime}`);
-        
+
+        if (opportunities.length === 0) {
+            console.log('   ℹ️  No opportunities cleared the screen – generating context-only digest');
+
+            const digestNote = 'No qualifying earnings setups cleared the filters today—delivering context only.';
+            const contextPayload = { ...(marketContext || {}), digestNote };
+
+            console.log('3. 📧 Sending context-only newsletter...');
+            const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
+                opportunityCount: 0,
+                subjectTag: 'No Screened Setups'
+            });
+            console.log(`   ✅ Broadcast dispatched - ID: ${result.broadcastId}`);
+
+            console.log('\n🎉 Full run completed successfully (context-only update)!');
+            return;
+        }
+
         console.log('3. 🤖 Generating AI analysis...');
         const emailContent = await generateTradingIdeas(GEMINI_API_KEY, opportunities, marketContext);
         console.log(`   ✅ Generated ${emailContent.length} analyses`);
-        
-        console.log('4. 📧 Sending newsletter...');
-    const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, emailContent, marketContext);
+
+        console.log('4. 🛡️ Validating analyses...');
+        const validatedContent = emailContent.filter(item => {
+            const validation = validateAnalysis(item.analysis);
+            if (!validation.isValid) {
+                console.warn(`   ⚠️  Filtering out ${item.opportunity.symbol}: ${validation.issues.join(', ')}`);
+                return false;
+            }
+            return true;
+        });
+
+        if (validatedContent.length === 0) {
+            console.log('   ℹ️  All analyses were held by the quality gate – sending context-only digest');
+
+            const digestNote = 'All screened names were held by the quality gate—see context below while we wait for better setups.';
+            const contextPayload = { ...(marketContext || {}), digestNote };
+
+            console.log('5. 📧 Sending context-only newsletter...');
+            const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
+                opportunityCount: 0,
+                subjectTag: 'Quality Gate Hold'
+            });
+            console.log(`   ✅ Broadcast dispatched - ID: ${result.broadcastId}`);
+
+            console.log('\n🎉 Full run completed successfully (quality gate update)!');
+            return;
+        }
+
+        if (validatedContent.length !== emailContent.length) {
+            console.log(`   ⚠️  ${validatedContent.length} analyses passed validation; ${emailContent.length - validatedContent.length} filtered out`);
+        } else {
+            console.log(`   ✅ ${validatedContent.length} analyses passed validation`);
+        }
+
+        console.log('5. 📧 Sending newsletter...');
+        const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, validatedContent, marketContext, {
+            opportunityCount: validatedContent.length
+        });
         console.log(`   ✅ Newsletter sent - Broadcast ID: ${result.broadcastId}`);
-        
-        console.log('\n🎉 Full run completed successfully!');
+
+        console.log('\n🎉 Full run completed successfully (opportunities published)!');
         
     } catch (error) {
         console.error('❌ Full run failed:', error.message);

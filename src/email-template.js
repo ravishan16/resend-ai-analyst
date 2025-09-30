@@ -272,7 +272,7 @@ const EmailTemplate = ({
               This newsletter is for educational purposes only and should not be considered personalized investment advice.
             </p>
             <p style="font-size: 10px; color: ${palette.muted}; margin: 12px 0 0 0;">
-              <a href="{{{ unsubscribe_url }}}" style="color: ${palette.primaryDark}; text-decoration: underline;">Unsubscribe</a>
+              <a href="{{{unsubscribe_url}}}" style="color: ${palette.primaryDark}; text-decoration: underline;">Unsubscribe</a>
             </p>
           </div>
         </div>
