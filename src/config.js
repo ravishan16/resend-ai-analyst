@@ -1,38 +1,32 @@
 // Expanded representative universe covering many missing names from S&P 500 + NASDAQ 100
 // Updated STOCK_UNIVERSE_RAW: Comprehensive list of relevant tickers
 const STOCK_UNIVERSE_RAW = [
-  // Core / Mega Tech
+  // Core / mega tech
   'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'NVDA', 'META', 'TSLA', 'ADBE', 'NFLX',
 
-  // Financials / Big Banks / Services
+  // Financials / big banks / services
   'BRK-B', 'JPM', 'GS', 'MS', 'C', 'BAC', 'WFC', 'BLK', 'AXP', 'ICE', 'SCHW', 'COF',
 
-  // Healthcare / Biotech / Pharma
-  'UNH', 'JNJ', 'PFE', 'LLY', 'MRK', 'ABT', 'MDT', 'BIIB', 'GILD', 'AMGN', 'REGN', 'ISRG',
+  // Healthcare / biotech / pharma
+  'UNH', 'JNJ', 'PFE', 'LLY', 'MRK', 'ABT', 'MDT', 'BIIB', 'GILD', 'AMGN', 'REGN', 'ISRG', 'MRNA',
 
-  // Consumer / Staples / Discretionary
+  // Consumer / staples / discretionary
   'V', 'MA', 'HD', 'DIS', 'MCD', 'COST', 'NKE', 'KO', 'PEP', 'PG', 'SBUX', 'TGT', 'LOW', 'LULU',
 
-  // Semiconductors / Hardware / Equipment
+  // Semiconductors / hardware / equipment
   'CSCO', 'INTC', 'QCOM', 'TXN', 'AMD', 'AMAT', 'ASML', 'ADI', 'LRCX', 'KLAC', 'MU', 'NXPI',
 
-  // Enterprise & Software / Cloud / SaaS
+  // Enterprise & software / cloud / SaaS
   'INTU', 'CRM', 'ORCL', 'NOW', 'SNYS', 'WORK', 'ADSK', 'PYPL', 'ZM', 'DOCU', 'OKTA',
 
-  // Communications / Telecom / Media
-  'VZ', 'T', 'TMUS', 'CMCSA', 'CHTR', 'DISCA', 'DISCK', 'CMG',
+  // Communications / telecom / media
+  'VZ', 'T', 'TMUS', 'CMCSA', 'CHTR', 'DISCA', 'DISCK', 'CMG', 'ATVI', 'SIRI', 'TTWO', 'EBAY', 'EXC', 'MAR', 'MELI', 'MNST', 'VRTX', 'ZTS',
 
-  // Industrials / Transportation / Infrastructure
+  // Industrials / transportation / infrastructure
   'XOM', 'CVX', 'COP', 'SLB', 'CAT', 'BA', 'HON', 'GE', 'UNP', 'UPS', 'DE', 'RTX',
 
-  // Growth / Newer Economy / Disruptors (non-meme)
-  'UBER', 'LYFT', 'SHOP', 'SNAP', 'ETSY', 'ROKU', 'SPOT', 'TWLO', 'SNOW', 'PLTR', 'COIN', 'RBLX', 'SOFI', 'PTON', 'ARM',
-
-  // Additional NASDAQ 100 Components
-  'AMGN', 'ASML', 'ATVI', 'CDNS', 'DXCM', 'EBAY', 'EXC', 'MAR', 'MELI', 'MNST', 'MRNA', 'OKTA', 'PYPL', 'REGN', 'SIRI', 'TTWO', 'VRTX', 'ZTS',
-
-  // Notable Tech Companies Outside S&P 500 / NASDAQ 100
-  'TSM', 'BIDU', 'JD', 'PDD', 'BABA', 'SHOP', 'SQ', 'RBLX', 'PLTR', 'SNAP', 'ETSY', 'COIN', 'SOFI', 'PTON', 'ARM'
+  // Growth / newer economy / disruptors (non-meme)
+  'UBER', 'LYFT', 'SHOP', 'SNAP', 'ETSY', 'ROKU', 'SPOT', 'TWLO', 'SNOW', 'PLTR', 'COIN', 'RBLX', 'SOFI', 'PTON', 'ARM'
 ];
 
 // Remove duplicates and export the clean stock universe
