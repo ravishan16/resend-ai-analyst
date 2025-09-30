@@ -1,4 +1,5 @@
 // Expanded representative universe covering many missing names from S&P 500 + NASDAQ 100
+// Updated STOCK_UNIVERSE_RAW: Comprehensive list of relevant tickers
 const STOCK_UNIVERSE_RAW = [
   // Core / mega tech
   'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'NVDA', 'META', 'TSLA', 'ADBE', 'NFLX',
@@ -7,7 +8,7 @@ const STOCK_UNIVERSE_RAW = [
   'BRK-B', 'JPM', 'GS', 'MS', 'C', 'BAC', 'WFC', 'BLK', 'AXP', 'ICE', 'SCHW', 'COF',
 
   // Healthcare / biotech / pharma
-  'UNH', 'JNJ', 'PFE', 'LLY', 'MRK', 'ABT', 'MDT', 'BIIB', 'GILD', 'AMGN', 'REGN', 'ISRG',
+  'UNH', 'JNJ', 'PFE', 'LLY', 'MRK', 'ABT', 'MDT', 'BIIB', 'GILD', 'AMGN', 'REGN', 'ISRG', 'MRNA',
 
   // Consumer / staples / discretionary
   'V', 'MA', 'HD', 'DIS', 'MCD', 'COST', 'NKE', 'KO', 'PEP', 'PG', 'SBUX', 'TGT', 'LOW', 'LULU',
@@ -19,16 +20,13 @@ const STOCK_UNIVERSE_RAW = [
   'INTU', 'CRM', 'ORCL', 'NOW', 'SNYS', 'WORK', 'ADSK', 'PYPL', 'ZM', 'DOCU', 'OKTA',
 
   // Communications / telecom / media
-  'VZ', 'T', 'TMUS', 'CMCSA', 'CHTR', 'DISCA', 'DISCK', 'CMG',
+  'VZ', 'T', 'TMUS', 'CMCSA', 'CHTR', 'DISCA', 'DISCK', 'CMG', 'ATVI', 'SIRI', 'TTWO', 'EBAY', 'EXC', 'MAR', 'MELI', 'MNST', 'VRTX', 'ZTS',
 
   // Industrials / transportation / infrastructure
   'XOM', 'CVX', 'COP', 'SLB', 'CAT', 'BA', 'HON', 'GE', 'UNP', 'UPS', 'DE', 'RTX',
 
   // Growth / newer economy / disruptors (non-meme)
-  'UBER', 'LYFT', 'SHOP', 'SNAP', 'ETSY', 'ROKU', 'SPOT', 'TWLO', 'SNOW', 'PLTR', 'COIN', 'RBLX', 'SOFI', 'PTON', 'ARM',
-
-  // More from NASDAQ 100 that were missing
-  'AMGN', 'ASML', 'ATVI', 'CDNS', 'COST', 'DXCM', 'EBAY', 'EXC', 'MAR', 'MELI', 'MNST', 'MRNA', 'OKTA', 'PYPL', 'REGN', 'SIRI', 'TTWO', 'VRTX', 'ZTS'
+  'UBER', 'LYFT', 'SHOP', 'SNAP', 'ETSY', 'ROKU', 'SPOT', 'TWLO', 'SNOW', 'PLTR', 'COIN', 'RBLX', 'SOFI', 'PTON', 'ARM'
 ];
 
 // Remove duplicates and export the clean stock universe
