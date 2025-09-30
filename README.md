@@ -113,7 +113,6 @@ The system pairs market intelligence with the human journey: traders discover th
 | Market Events | **Finnhub** | Earnings calendar & VIX quote | Free tier 60 calls/min; configured via `FINNHUB_API_KEY` |
 | **Primary Data** | **Yahoo Finance** | **Quotes & historical volatility** | **100% reliable, sub-200ms response, no API limits** |
 | Fallback Data | Finnhub | Quote backup | <1% usage rate; automatic failover |
-| Legacy Fallback | Alpha Vantage | Emergency quotes only | 25 calls/day limit; rarely triggered |
 | AI Narrative | **Google Gemini** | Sentiment, strategy articulation | Model: `gemini-pro-latest`; validated before inclusion |
 | Delivery | **Resend** | Broadcast the React Email digest | Audience ID stored in secrets |
 | Compute | **Cloudflare Workers** | Cron trigger, API endpoints, pipeline orchestration | Runs at 08:00 UTC weekdays (see `wrangler.toml`) |
@@ -121,7 +120,7 @@ The system pairs market intelligence with the human journey: traders discover th
 ### 🚀 Performance Optimizations
 - **Yahoo Finance Primary:** 67-255ms average quote response time
 - **Smart Caching:** 5-minute TTL reduces redundant API calls by ~80%
-- **Rate Optimization:** 500ms delays (down from 1200ms) = 58% faster bulk processing
+- **Rate Optimization:** 500ms delays = 58% faster bulk processing
 - **Real Data Focus:** 100% historical volatility from actual market data (no estimates needed)
 
 ---
@@ -152,7 +151,6 @@ Create `.env` (used by the CLI and Make targets):
 
 ```bash
 FINNHUB_API_KEY=your_finnhub_key
-ALPHA_VANTAGE_API_KEY=your_alpha_key
 GEMINI_API_KEY=your_gemini_key
 RESEND_API_KEY=your_resend_key
 AUDIENCE_ID=your_resend_audience_id
@@ -168,13 +166,13 @@ SUMMARY_EMAIL_RECIPIENT=********@gmail.com
 > - **Yahoo Finance:** No API limits, sub-200ms response times, 100% reliability
 > - **Smart Caching:** 5-minute TTL reduces API calls by ~80% during bulk operations
 > - **Finnhub:** 60 calls/min free tier—ample for daily earnings scans
-> - **Optimized Delays:** 500ms between requests (down from 1200ms) = 58% faster processing
+> - **Optimized Delays:** 500ms between requests = 58% faster processing
 > - **Gemini:** Quotas vary by account; failures default to skipping analysis so email still sends
 
 ### 3. Run Sanity Tests
 ```sh
 make test-finnhub      # Earnings scan
-make test-alphavantage # Quote + volatility pipeline
+make test-yahoo        # Quote + volatility pipeline
 make test-email        # Render newsletter preview
 ```
 
@@ -254,7 +252,7 @@ npm run test:ui
 ```sh
 # Individual component tests
 make test-finnhub      # Earnings calendar data
-make test-alphavantage # Volatility analysis
+make test-yahoo        # Volatility analysis with Yahoo Finance
 make test-gemini       # AI analysis generation
 make test-email        # Newsletter rendering
 make preview-email     # Local newsletter preview
