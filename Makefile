@@ -8,6 +8,11 @@ deploy:
 	@echo "🚀 Deploying to Cloudflare Workers..."
 	@wrangler deploy
 
+deploy-pages:
+	@echo "🌐 Deploying signup site to Cloudflare Pages..."
+	@PROJECT_NAME=$${PROJECT_NAME:-options-insight-signup}; \
+	wrangler pages deploy pages --project-name $$PROJECT_NAME
+
 # Individual component testing
 test-finnhub:
 	@echo "📊 Testing Finnhub earnings data..."
@@ -65,6 +70,7 @@ push-secrets:
 	if [ -z "$$ALPHA_VANTAGE_API_KEY" ]; then echo "❌ ALPHA_VANTAGE_API_KEY not set in .env"; exit 1; fi && \
 	if [ -z "$$GEMINI_API_KEY" ]; then echo "❌ GEMINI_API_KEY not set in .env"; exit 1; fi && \
 	if [ -z "$$RESEND_API_KEY" ]; then echo "❌ RESEND_API_KEY not set in .env"; exit 1; fi && \
+	if [ -z "$$AUDIENCE_ID" ]; then echo "❌ AUDIENCE_ID not set in .env"; exit 1; fi && \
 	if [ -z "$$TRIGGER_AUTH_SECRET" ]; then echo "❌ TRIGGER_AUTH_SECRET not set in .env"; exit 1; fi && \
 	echo "✅ Environment variables validated" && \
 	echo "🔄 Pushing FINNHUB_API_KEY..." && \
@@ -75,6 +81,8 @@ push-secrets:
 	echo "$$GEMINI_API_KEY" | wrangler secret put GEMINI_API_KEY && \
 	echo "🔄 Pushing RESEND_API_KEY..." && \
 	echo "$$RESEND_API_KEY" | wrangler secret put RESEND_API_KEY && \
+	echo "🔄 Pushing AUDIENCE_ID..." && \
+	echo "$$AUDIENCE_ID" | wrangler secret put AUDIENCE_ID && \
 	echo "🔄 Pushing TRIGGER_AUTH_SECRET..." && \
 	echo "$$TRIGGER_AUTH_SECRET" | wrangler secret put TRIGGER_AUTH_SECRET && \
 	if [ -n "$$SUMMARY_EMAIL_RECIPIENT" ]; then \
@@ -88,6 +96,12 @@ push-secrets:
 		echo "$$SUMMARY_EMAIL_FROM" | wrangler secret put SUMMARY_EMAIL_FROM; \
 	else \
 		echo "ℹ️  SUMMARY_EMAIL_FROM not set; skipping"; \
+	fi && \
+	if [ -n "$$SIGNUP_ALLOWED_ORIGINS" ]; then \
+		echo "🔄 Pushing SIGNUP_ALLOWED_ORIGINS..." && \
+		echo "$$SIGNUP_ALLOWED_ORIGINS" | wrangler secret put SIGNUP_ALLOWED_ORIGINS; \
+	else \
+		echo "ℹ️  SIGNUP_ALLOWED_ORIGINS not set; using defaults"; \
 	fi && \
 	echo "✅ All secrets pushed successfully"
 
@@ -133,6 +147,7 @@ help:
 	@echo "🔧 Available commands:"
 	@echo "  dev              - Start local development server"
 	@echo "  deploy           - Deploy to production"
+	@echo "  deploy-pages     - Deploy the Cloudflare Pages signup site"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  test-finnhub     - Test earnings data fetching"
