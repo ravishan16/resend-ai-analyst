@@ -1,9 +1,31 @@
+/**
+ * @fileoverview Options Insight - Automated Earnings Analysis Pipeline
+ * @description Cloudflare Worker that scans earnings calendars, performs volatility analysis,
+ * generates AI-powered trading insights, and delivers professional newsletters via email.
+ * Implements 7-stage deterministic pipeline with graceful degradation.
+ */
+
 import { getEarningsOpportunities, getMarketContext } from './finnhub.js';
 import { generateTradingIdeas, validateAnalysis } from './gemini.js';
 import { sendEmailDigest, sendRunSummaryEmail, addSubscriberToAudience } from './email.js';
 import { initializeRealData } from './real-volatility.js';
 
+/**
+ * Main Cloudflare Worker export with scheduled and fetch handlers
+ * @namespace Worker
+ */
 export default {
+    /**
+     * Scheduled handler for automated daily newsletter generation
+     * @async
+     * @param {Object} controller - Cloudflare cron controller
+     * @param {Object} env - Environment variables and secrets
+     * @param {Object} ctx - Execution context
+     * @description Runs the complete 7-stage pipeline: Environment validation,
+     * data initialization, earnings scanning, market context, AI analysis,
+     * validation, and newsletter delivery. Includes comprehensive error handling
+     * and summary reporting.
+     */
     async scheduled(controller, env, ctx) {
         console.log("🎯 Running Options Insight Research Agent...");
         let summary;
@@ -22,6 +44,19 @@ export default {
         }
     },
 
+    /**
+     * HTTP fetch handler for API endpoints
+     * @async  
+     * @param {Request} request - HTTP request object
+     * @param {Object} env - Environment variables and secrets
+     * @param {Object} ctx - Execution context
+     * @returns {Response} HTTP response
+     * @description Handles various API endpoints:
+     * - GET /health: System health check
+     * - GET /status: Configuration audit  
+     * - POST /trigger: Manual pipeline execution
+     * - POST /subscribe: Newsletter subscription management
+     */
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
         
@@ -247,23 +282,23 @@ async function processAndSendDigest(env) {
         completeStep('success', 'All required secrets present');
 
         beginStep('Initialize Alpha Vantage');
-        if (!ALPHA_VANTAGE_API_KEY) {
-            console.warn("⚠️  No Alpha Vantage API key provided, using fallback data");
-            completeStep('warning', 'No Alpha Vantage API key provided; using fallback data');
+        if (!ALPHA_VANTAGE_API_KEY && !FINNHUB_API_KEY) {
+            console.warn("⚠️  No Alpha Vantage or Finnhub API keys provided, using fallback data");
+            completeStep('warning', 'No market data API keys provided; using fallback data');
         } else {
-            console.log("🔐 Initializing Alpha Vantage for market data...");
+            console.log("🔐 Initializing market data providers...");
             try {
-                const alphaVantageInit = await initializeRealData(ALPHA_VANTAGE_API_KEY);
-                if (!alphaVantageInit) {
-                    console.warn("⚠️  Alpha Vantage initialization failed, using fallback data");
-                    completeStep('warning', 'Alpha Vantage initialization failed; using fallback data');
+                const dataInit = await initializeRealData(ALPHA_VANTAGE_API_KEY, FINNHUB_API_KEY);
+                if (!dataInit) {
+                    console.warn("⚠️  Market data initialization failed, using fallback data");
+                    completeStep('warning', 'Market data initialization failed; using fallback data');
                 } else {
-                    console.log("✅ Alpha Vantage initialized successfully");
-                    completeStep('success', 'Alpha Vantage initialized successfully');
+                    console.log("✅ Market data providers initialized successfully");
+                    completeStep('success', 'Market data providers initialized successfully');
                 }
             } catch (error) {
-                console.warn('⚠️  Alpha Vantage threw an error, using fallback data', error);
-                completeStep('warning', `Alpha Vantage error: ${error.message}`);
+                console.warn('⚠️  Market data providers threw an error, using fallback data', error);
+                completeStep('warning', `Market data error: ${error.message}`);
             }
         }
 

@@ -4,3 +4,11 @@ node_modules
 .env
 .DS_Store
 logs.txt
+
+# Test coverage
+coverage/
+*.lcov
+
+# Test artifacts
+test-results/
+vitest-ui/

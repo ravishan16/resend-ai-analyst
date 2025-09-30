@@ -2,7 +2,63 @@ import { STOCK_UNIVERSE } from './config.js';
 import { getBulkVolatilityAnalysis, calculateVolatilityScore, initializeRealData } from './real-volatility.js';
 
 /**
+ * Finnhub API wrapper class
+ */
+class FinnhubAPI {
+    constructor(apiKey, delay = 0) {
+        this.apiKey = apiKey;
+        this.baseUrl = 'https://finnhub.io/api/v1';
+        this.delay = delay;
+    }
+
+    async makeRequest(endpoint) {
+        const url = `${this.baseUrl}${endpoint}&token=${this.apiKey}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Finnhub API error: ${response.status} ${response.statusText}`);
+        }
+
+        if (this.delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, this.delay));
+        }
+
+        return response.json();
+    }
+
+    async getEarningsCalendar(fromDate, toDate) {
+        const data = await this.makeRequest(`/calendar/earnings?from=${fromDate}&to=${toDate}`);
+        return data.earningsCalendar || [];
+    }
+
+    async getQuote(symbol) {
+        return this.makeRequest(`/quote?symbol=${symbol}`);
+    }
+
+    async getCompanyProfile(symbol) {
+        return this.makeRequest(`/stock/profile2?symbol=${symbol}`);
+    }
+
+    async getBasicFinancials(symbol) {
+        return this.makeRequest(`/stock/metric?symbol=${symbol}&metric=all`);
+    }
+}
+
+/**
  * Enhanced earnings opportunities scanner with volatility analysis
+ * @async
+ * @param {string} finnhubApiKey - Finnhub API key for earnings calendar data
+ * @param {string} alphaVantageApiKey - Alpha Vantage API key (legacy fallback)
+ * @returns {Promise<Array<Object>>} Array of qualified earnings opportunities
+ * @returns {Object[]} returns.opportunities - Individual opportunity objects
+ * @returns {string} returns.opportunities[].symbol - Stock symbol
+ * @returns {string} returns.opportunities[].date - Earnings date (YYYY-MM-DD)
+ * @returns {number} returns.opportunities[].daysToEarnings - Days until earnings
+ * @returns {Object} returns.opportunities[].volatilityData - Complete volatility analysis
+ * @returns {number} returns.opportunities[].qualityScore - Composite quality score (0-100)
+ * @description Main pipeline function that scans earnings calendar, filters by stock universe,
+ * performs volatility analysis, and calculates quality scores. Returns only opportunities
+ * that pass timing (1-45 days) and universe (S&P 500 + NASDAQ 100) filters.
  */
 export async function getEarningsOpportunities(finnhubApiKey, alphaVantageApiKey) {
     const fromDate = new Date();
@@ -172,13 +228,15 @@ function calculateQualityScore(opportunity) {
         }
     }
 
-    // Volatility score (from volatility analysis) - but more tolerant of low scores
-    const volatilityScore = opportunity.volatilityScore || 0;
-    if (volatilityScore > 40) {
+    // Volatility score (from volatility analysis) - use the detailed volatility score
+    const volatilityScore = opportunity.volatilityData?.volatilityScore || opportunity.volatilityScore || 0;
+    if (volatilityScore > 70) {
         score += weights.volatility;
-    } else if (volatilityScore > 20) {
-        score += weights.volatility * 0.7;
-    } else if (volatilityScore > 5) {
+    } else if (volatilityScore > 50) {
+        score += weights.volatility * 0.8;
+    } else if (volatilityScore > 30) {
+        score += weights.volatility * 0.6;
+    } else if (volatilityScore > 10) {
         score += weights.volatility * 0.4;
     } else {
         score += weights.volatility * 0.2; // Even very low scores get some points
@@ -224,7 +282,18 @@ function calculateQualityScore(opportunity) {
 }
 
 /**
- * Get market context information
+ * Get market volatility context and regime classification
+ * @async
+ * @param {string} finnhubApiKey - Finnhub API key for VIX data
+ * @returns {Promise<Object>} Market context object
+ * @returns {number|null} returns.vix - Current VIX level or null if unavailable
+ * @returns {string} returns.marketRegime - Volatility regime classification
+ * @returns {string} returns.lastUpdated - ISO timestamp of data retrieval
+ * @description Fetches VIX data and classifies market volatility regime:
+ * - 'low-volatility': VIX < 20 (premium selling favored)
+ * - 'normal': VIX 20-30 (balanced strategies)
+ * - 'high-volatility': VIX > 30 (premium buying considerations)
+ * Used by AI analysis for strategy recommendations.
  */
 export async function getMarketContext(finnhubApiKey) {
     try {
@@ -256,3 +325,5 @@ export async function getMarketContext(finnhubApiKey) {
         return { vix: null, marketRegime: 'unknown' };
     }
 }
+
+export default FinnhubAPI;

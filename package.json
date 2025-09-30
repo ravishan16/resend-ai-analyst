@@ -8,9 +8,12 @@
     "deploy": "wrangler deploy",
     "start": "wrangler dev",
     "test": "vitest run",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
     "vitest": "^3.2.4",
     "wrangler": "^4.40.2"
   },

@@ -1,91 +1,140 @@
 /**
- * Real volatility data integration using Alpha Vantage API
- * Provides actual market data with calculated volatility metrics
+ * Real volatility data integration using simplified multi-source approach
+ * Primary: Yahoo Finance (free, reliable, complete data)
+ * Fallback: Finnhub (free quotes)
+ * Final: Estimated data
  */
 
 import AlphaVantageAPI from './alphavantage.js';
+import SimplifiedDataProvider from './simplified-data.js';
 
 class RealVolatilityData {
     constructor() {
-        this.alphaVantage = null; // Initialize later with API key
+        this.alphaVantage = null; // Legacy Alpha Vantage API (fallback)
+        this.dataProvider = null; // New simplified provider
         this.initialized = false;
         this.alphaVantageApiKey = null;
+        this.finnhubApiKey = null;
     }
 
     /**
-     * Initialize the Alpha Vantage API
+     * Initialize the data providers
      */
-    async initialize(apiKey = null) {
-        // Check if API key is available (from parameter or environment)
-        const alphaVantageKey = apiKey || process.env.ALPHA_VANTAGE_API_KEY;
+    async initialize(alphaVantageApiKey = null, finnhubApiKey = null) {
+        // Store API keys
+        this.alphaVantageApiKey = alphaVantageApiKey || process.env.ALPHA_VANTAGE_API_KEY;
+        this.finnhubApiKey = finnhubApiKey || process.env.FINNHUB_API_KEY;
         
-        if (!alphaVantageKey || alphaVantageKey === 'your_alpha_vantage_api_key_here') {
-            console.error('❌ Alpha Vantage API key required');
-            console.log('Get your free key at: https://www.alphavantage.co/support/#api-key');
-            return false;
-        }
+        console.log('🔄 Initializing simplified data provider...');
+        
+        // Initialize simplified provider (primary) with optimized Yahoo Finance settings
+        this.dataProvider = new SimplifiedDataProvider({
+            finnhubApiKey: this.finnhubApiKey,
+            requestDelay: 600 // Reduced delay for Yahoo Finance's liberal rate limits
+        });
 
-        // Store the API key and create Alpha Vantage instance
-        this.alphaVantageApiKey = alphaVantageKey;
-        this.alphaVantage = new AlphaVantageAPI(alphaVantageKey);
+        // Legacy Alpha Vantage for compatibility (final fallback)
+        if (this.alphaVantageApiKey && this.alphaVantageApiKey !== 'your_alpha_vantage_api_key_here') {
+            this.alphaVantage = new AlphaVantageAPI(this.alphaVantageApiKey);
+            console.log('✅ Alpha Vantage API initialized (final fallback)');
+        } else {
+            console.log('⚠️  Alpha Vantage API key not available');
+        }
         
-        console.log('✅ Alpha Vantage API initialized');
         this.initialized = true;
+        console.log('✅ Simplified data provider initialized');
         return true;
     }
 
     /**
-     * Get real volatility analysis for a single symbol
+     * Get volatility analysis for a single symbol (simplified)
      */
     async getVolatilityAnalysis(symbol) {
         if (!this.initialized) {
-            console.warn('⚠️ Alpha Vantage not initialized, using mock data');
-            return this.getMockVolatilityData(symbol);
+            throw new Error('RealVolatilityData not initialized');
         }
 
         try {
-            const analysis = await this.alphaVantage.getVolatilityAnalysis(symbol);
-            return analysis;
+            // Try simplified provider first (Yahoo + Finnhub)
+            const analysis = await this.dataProvider.getVolatilityAnalysis(symbol);
+            if (analysis) {
+                return analysis;
+            }
         } catch (error) {
-            console.error(`❌ Error getting real volatility data for ${symbol}:`, error);
-            // Fallback to mock data if API fails
-            return this.getMockVolatilityData(symbol);
+            console.warn(`⚠️ Simplified provider failed for ${symbol}:`, error.message);
         }
+
+        // Fallback to legacy Alpha Vantage (if available)
+        if (this.alphaVantage) {
+            try {
+                console.log(`🔄 Falling back to Alpha Vantage for ${symbol}...`);
+                const analysis = await this.alphaVantage.getVolatilityAnalysis(symbol);
+                if (analysis) return analysis;
+            } catch (error) {
+                console.warn(`⚠️ Alpha Vantage fallback failed for ${symbol}:`, error.message);
+            }
+        }
+
+        // Final fallback: return null instead of mock data when providers fail
+        return null;
     }
 
     /**
-     * Get real volatility analysis for multiple symbols
+     * Get volatility analysis for multiple symbols (simplified)
      */
     async getBulkVolatilityAnalysis(symbols) {
         if (!this.initialized) {
-            console.warn('⚠️ Alpha Vantage not initialized, using mock data');
+            console.warn('⚠️ Data providers not initialized, using mock data');
             return this.getMockBulkData(symbols);
         }
 
         try {
-            // For free tier, we need to be careful about rate limits
-            console.log(`📊 Analyzing ${symbols.length} symbols with Alpha Vantage (rate-limited)...`);
+            // Use simplified provider for bulk analysis
+            console.log(`📊 Using simplified provider for ${symbols.length} symbols...`);
+            const results = await this.dataProvider.getBulkVolatilityAnalysis(symbols);
             
-            const results = {};
-            for (const symbol of symbols) {
-                try {
-                    const analysis = await this.alphaVantage.getVolatilityAnalysis(symbol);
-                    results[symbol] = analysis;
-                    
-                    // Rate limiting for free tier (5 calls per minute)
-                    if (symbols.indexOf(symbol) < symbols.length - 1) {
-                        console.log('⏳ Rate limit delay...');
-                        await new Promise(resolve => setTimeout(resolve, 15000)); // 15 second delay
+            // Handle null/undefined results
+            if (!results || typeof results !== 'object') {
+                return {};
+            }
+            
+            // Check for any failed symbols and retry with Alpha Vantage if available
+            const failedSymbols = Object.entries(results)
+                .filter(([symbol, data]) => data === null)
+                .map(([symbol]) => symbol);
+            
+            if (failedSymbols.length > 0 && this.alphaVantage) {
+                console.log(`🔄 Retrying ${failedSymbols.length} failed symbols with Alpha Vantage...`);
+                
+                for (const symbol of failedSymbols) {
+                    try {
+                        const analysis = await this.alphaVantage.getVolatilityAnalysis(symbol);
+                        if (analysis) {
+                            results[symbol] = analysis;
+                        } else {
+                            results[symbol] = this.getMockVolatilityData(symbol);
+                        }
+                        
+                        // Rate limiting for Alpha Vantage
+                        if (failedSymbols.indexOf(symbol) < failedSymbols.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 15000));
+                        }
+                    } catch (error) {
+                        console.warn(`⚠️ Alpha Vantage retry failed for ${symbol}:`, error.message);
+                        results[symbol] = this.getMockVolatilityData(symbol);
                     }
-                } catch (error) {
-                    console.error(`❌ Error analyzing ${symbol}:`, error);
-                    results[symbol] = this.getMockVolatilityData(symbol);
                 }
+            } else if (failedSymbols.length > 0) {
+                // Fill remaining failures with mock data
+                failedSymbols.forEach(symbol => {
+                    results[symbol] = this.getMockVolatilityData(symbol);
+                });
             }
             
             return results;
+            
         } catch (error) {
-            console.error('❌ Error in bulk analysis:', error);
+            console.error('❌ Error in simplified bulk analysis:', error);
             return this.getMockBulkData(symbols);
         }
     }
@@ -134,17 +183,17 @@ const realVolatilityData = new RealVolatilityData();
 /**
  * Initialize the real data service (call this once at startup)
  */
-export async function initializeRealData(apiKey = null) {
-    return await realVolatilityData.initialize(apiKey);
+export async function initializeRealData(alphaVantageApiKey = null, finnhubApiKey = null) {
+    return await realVolatilityData.initialize(alphaVantageApiKey, finnhubApiKey);
 }
 
 /**
  * Get volatility analysis for a single symbol (compatible interface)
  */
-export async function getVolatilityAnalysis(symbol, apiKey = null) {
-    // If API key is provided and not initialized yet, initialize now
-    if (apiKey && !realVolatilityData.initialized) {
-        await realVolatilityData.initialize(apiKey);
+export async function getVolatilityAnalysis(symbol, alphaVantageApiKey = null, finnhubApiKey = null) {
+    // If API keys are provided and not initialized yet, initialize now
+    if ((alphaVantageApiKey || finnhubApiKey) && !realVolatilityData.initialized) {
+        await realVolatilityData.initialize(alphaVantageApiKey, finnhubApiKey);
     }
     
     return await realVolatilityData.getVolatilityAnalysis(symbol);
@@ -153,10 +202,10 @@ export async function getVolatilityAnalysis(symbol, apiKey = null) {
 /**
  * Get volatility analysis for multiple symbols (compatible interface)
  */
-export async function getBulkVolatilityAnalysis(symbols, apiKey = null) {
-    // If API key is provided and not initialized yet, initialize now
-    if (apiKey && !realVolatilityData.initialized) {
-        await realVolatilityData.initialize(apiKey);
+export async function getBulkVolatilityAnalysis(symbols, alphaVantageApiKey = null, finnhubApiKey = null) {
+    // If API keys are provided and not initialized yet, initialize now
+    if ((alphaVantageApiKey || finnhubApiKey) && !realVolatilityData.initialized) {
+        await realVolatilityData.initialize(alphaVantageApiKey, finnhubApiKey);
     }
     
     return await realVolatilityData.getBulkVolatilityAnalysis(symbols);
@@ -170,50 +219,12 @@ export function calculateVolatilityScore(volatilityData) {
         return 0;
     }
 
-    let score = 0;
-    const weights = {
-        impliedVolatility: 25,
-        ivRank: 20,
-        optionsVolume: 20,
-        expectedMove: 20,
-        bidAskSpread: 15
-    };
-
-    // Score based on implied volatility level
-    if (volatilityData.impliedVolatility) {
-        const iv = volatilityData.impliedVolatility;
-        if (iv > 0.4) score += weights.impliedVolatility; // >40%
-        else if (iv > 0.25) score += weights.impliedVolatility * 0.7; // >25%
-        else if (iv > 0.15) score += weights.impliedVolatility * 0.4; // >15%
-    }
-
-    // Score based on IV rank (higher is better for selling strategies)
-    if (volatilityData.ivRank) {
-        if (volatilityData.ivRank > 70) score += weights.ivRank;
-        else if (volatilityData.ivRank > 50) score += weights.ivRank * 0.7;
-        else if (volatilityData.ivRank > 30) score += weights.ivRank * 0.4;
-    }
-
-    // Score based on options volume (liquidity)
-    if (volatilityData.optionsVolume > 1000) score += weights.optionsVolume;
-    else if (volatilityData.optionsVolume > 500) score += weights.optionsVolume * 0.7;
-    else if (volatilityData.optionsVolume > 100) score += weights.optionsVolume * 0.4;
-
-    // Score based on expected move magnitude
-    if (volatilityData.expectedMove && volatilityData.currentPrice) {
-        const expectedMovePercent = (volatilityData.expectedMove / volatilityData.currentPrice) * 100;
-        if (expectedMovePercent > 8) score += weights.expectedMove;
-        else if (expectedMovePercent > 5) score += weights.expectedMove * 0.7;
-        else if (expectedMovePercent > 3) score += weights.expectedMove * 0.4;
-    }
-
-    // Score based on bid/ask spread (tighter is better)
-    if (volatilityData.bidAskSpread && volatilityData.currentPrice) {
-        const spreadPercent = (volatilityData.bidAskSpread / volatilityData.currentPrice) * 100;
-        if (spreadPercent < 0.5) score += weights.bidAskSpread; // <0.5%
-        else if (spreadPercent < 1.0) score += weights.bidAskSpread * 0.7; // <1.0%
-        else if (spreadPercent < 2.0) score += weights.bidAskSpread * 0.4; // <2.0%
-    }
-
-    return Math.round(score);
+    const ivPercentile = volatilityData.impliedVolatilityPercentile || 50;
+    const ivRank = volatilityData.impliedVolatilityRank || 0;
+    const liquidity = volatilityData.optionsVolume || 0;
+    
+    return (ivPercentile * 0.4) + (ivRank * 0.4) + (Math.min(liquidity / 10000, 10) * 0.2);
 }
+
+// Export both the class and the function
+export default RealVolatilityData;
