@@ -105,7 +105,7 @@ const EmailTemplate = ({
                   (vol.technicalIndicators.rsi > 70 ? palette.primaryDark : vol.technicalIndicators.rsi < 30 ? palette.primary : palette.muted) : palette.muted};">
                   ${vol.technicalIndicators?.rsi?.toFixed(1) || 'N/A'}
                 </td>
-                <td style="padding: 4px 8px 4px 0; font-weight: 500;">5W Range:</td>
+                <td style="padding: 4px 8px 4px 0; font-weight: 500;">52W Range:</td>
                 <td style="padding: 4px 0; font-size: 10px;">
                   ${vol.weeklyRange ? 
                     `$${vol.weeklyRange.low} - $${vol.weeklyRange.high}` : 'N/A'}
@@ -262,7 +262,7 @@ const EmailTemplate = ({
               <div style="margin-bottom: 6px;"><strong>HV (Historical Volatility):</strong> Past 30-day realized price movement</div>
               <div style="margin-bottom: 6px;"><strong>RSI (Relative Strength Index):</strong> Momentum indicator (0-100); >70 overbought, <30 oversold</div>
               <div style="margin-bottom: 6px;"><strong>Expected Move:</strong> Predicted price range through earnings (1 std dev)</div>
-              <div style="margin-bottom: 6px;"><strong>5W Range:</strong> 5-week high/low price range for recent context</div>
+              <div style="margin-bottom: 6px;"><strong>52W Range:</strong> 5-week high/low price range for recent context</div>
               <div><strong>Quality Score:</strong> Composite ranking based on liquidity, volume, and data reliability</div>
             </div>
           </div>
