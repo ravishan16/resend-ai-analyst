@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import EmailTemplate from './email-template.js';
+import htmlToReactEmail from './email-renderer.js';
 
 /**
  * Enhanced email delivery with React Email template
@@ -11,6 +12,8 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
         const resend = new Resend(apiKey);
         const today = new Date().toDateString();
         const from = options.from || 'newsletter@ravishankars.com';
+        const opportunityCount = options.opportunityCount ?? content.length;
+        const subjectTag = options.subjectTag || `${opportunityCount} ${opportunityCount === 1 ? 'Opportunity' : 'Opportunities'}`;
 
         if (!audienceId) {
             throw new Error('AUDIENCE_ID is required to send the newsletter');
@@ -23,13 +26,21 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
             date: today
         });
 
+        const reactContent = htmlToReactEmail(htmlContent);
+
         console.log("Creating broadcast draft with React Email template...");
-        const { data: createData, error: createError } = await resend.broadcasts.create({
+        const broadcastPayload = {
             from,
             audienceId: audienceId,
-            subject: `🎯 Options Insight - ${today} (${content.length} Opportunities)`,
-            html: htmlContent,
-        });
+            subject: `🎯 Options Insight - ${today} (${subjectTag})`,
+            html: htmlContent
+        };
+
+        if (reactContent) {
+            broadcastPayload.react = reactContent;
+        }
+
+        const { data: createData, error: createError } = await resend.broadcasts.create(broadcastPayload);
 
         if (createError) {
             throw new Error(`Resend API (create) failed: ${JSON.stringify(createError)}`);
@@ -47,7 +58,7 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
         return {
             success: true,
             broadcastId: sendData.id,
-            recipientCount: content.length,
+            recipientCount: options.recipientCount ?? content.length,
             timestamp: new Date().toISOString()
         };
 

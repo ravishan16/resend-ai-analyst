@@ -47,6 +47,10 @@ test-full-run:
 	@echo "🎯 Simulating complete daily run..."
 	@node -r dotenv/config src/cli.js full-run
 
+test-unit:
+	@echo "🧪 Running unit tests (Vitest)..."
+	@npx vitest run
+
 # Preview and debugging
 preview-email:
 	@echo "👀 Previewing email template..."

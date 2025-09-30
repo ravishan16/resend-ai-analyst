@@ -1,5 +1,20 @@
 # Options Insight – Quantitative Earnings Research Agent
 
+<p align="left">
+   <a href="https://github.com/ravishan16/options-insight/actions/workflows/pr.yml">
+      <img alt="CI" src="https://github.com/ravishan16/options-insight/actions/workflows/pr.yml/badge.svg" />
+   </a>
+   <a href="https://github.com/ravishan16/options-insight/actions/workflows/deploy.yml">
+      <img alt="Deploy" src="https://github.com/ravishan16/options-insight/actions/workflows/deploy.yml/badge.svg" />
+   </a>
+   <a href="LICENSE">
+      <img alt="License" src="https://img.shields.io/badge/license-MIT-%23B45F4D" />
+   </a>
+   <a href="https://options-insight.ravishankars.com/" target="_blank">
+      <img alt="Subscribe" src="https://img.shields.io/badge/subscribe-options--insight.ravishankars.com-%23DDBEA9" />
+   </a>
+</p>
+
 ## TL;DR
 - **What it is:** An autonomous Cloudflare Worker that scans upcoming earnings, enriches them with volatility and sentiment analysis, and delivers a polished newsletter via Resend.
 - **Why it matters:** Retail options traders get institutional-style prep without the manual grind—quantitative stats, AI commentary, and playbook-ready strategies arrive every weekday morning.
@@ -26,32 +41,44 @@ The modern options workflow is still a patchwork of screeners, spreadsheets, and
 
 ```mermaid
 flowchart TD
-    classDef data fill:#F3E2D5,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
-    classDef worker fill:#FDFDFD,stroke:#E4C590,stroke-width:1.6px,color:#3A3A3A
-    classDef delivery fill:#DDBEA9,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
+   classDef data fill:#F3E2D5,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
+   classDef worker fill:#FDFDFD,stroke:#E4C590,stroke-width:1.6px,color:#3A3A3A
+   classDef delivery fill:#DDBEA9,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
+   classDef touch fill:#FAF6F0,stroke:#B45F4D,stroke-width:1px,color:#3A3A3A
 
-    F["📅 Finnhub<br/>Earnings Calendar"]:::data
-    A["💹 Alpha Vantage<br/>Quotes & Volatility"]:::data
-    G["🧠 Google Gemini<br/>Narrative AI"]:::data
+   F["📅 Finnhub<br/>Earnings Calendar"]:::data
+   A["💹 Alpha Vantage<br/>Quotes & Volatility"]:::data
+   G["🧠 Google Gemini<br/>Narrative AI"]:::data
 
-    S["⏱ Scheduler & API<br/>(src/index.js)"]:::worker
-    P["📊 Opportunity Scan<br/>(src/finnhub.js)"]:::worker
-    V["📈 Volatility Analysis<br/>(src/real-volatility.js)"]:::worker
-    Q["✅ Quality Gates<br/>(validateAnalysis)"]:::worker
-    T["🖋 Email Composer<br/>(src/email-template.js)"]:::worker
+   U["👤 Retail Trader<br/>Subscriber Persona"]:::touch
+   Signup["📝 Signup Page<br/>Cloudflare Pages"]:::touch
 
-    R["✉️ Resend Broadcast"]:::delivery
-    L["📥 Subscriber Inbox"]:::delivery
+   S["⏱ Scheduler & API<br/>(src/index.js)"]:::worker
+   Sub["🛡 Subscribe Endpoint<br/>(POST /subscribe)"]:::worker
+   P["📊 Opportunity Scan<br/>(src/finnhub.js)"]:::worker
+   V["📈 Volatility Analysis<br/>(src/real-volatility.js)"]:::worker
+   Q["✅ Quality Gates<br/>(validateAnalysis)"]:::worker
+   T["🖋 Email Composer<br/>(src/email-template.js)"]:::worker
 
-    F --> P
-    A --> V
-    P --> V --> Q --> T --> R --> L
-    G --> Q
-    S --> P
-    S --> R
+   Audience["📇 Resend Audience<br/>Contacts"]:::delivery
+   R["✉️ Resend Broadcast"]:::delivery
+   L["📥 Subscriber Inbox"]:::delivery
+   Unsub["🚪 One-click Unsubscribe<br/>Resend-managed"]:::delivery
+
+   F --> P
+   A --> V
+   P --> V --> Q --> T --> R --> L --> Unsub --> Audience
+   G --> Q
+   S --> P
+   S --> R
+   U --> Signup --> Sub --> Audience
 ```
 
-The flow stays intentionally linear: structured market data and AI inputs feed the Cloudflare Worker pipeline, which stages scanning, volatility math, quality checks, and rendering before handing a finished briefing to Resend and the subscriber inbox.
+The system pairs market intelligence with the human journey: traders discover the signup page, opt in via the Worker’s protected `/subscribe` endpoint, get added to the Resend audience, and receive daily research with an always-on unsubscribe loop managed by Resend.
+
+- **Subscriber Persona (Retail Trader):** Action-oriented options trader seeking pre-market context and volatility guidance.
+- **Signup Touchpoint:** Branded Cloudflare Pages microsite funnels interest straight into the Worker’s CORS-guarded subscription endpoint.
+- **Retention & Trust:** Every briefing flows through Resend broadcasts, honoring unsubscribe requests without additional infrastructure.
 
 ---
 
