@@ -24,6 +24,9 @@
 - **Performance:** Yahoo Finance optimized architecture delivering sub-200ms quotes with 100% reliability and 69/69 passing tests.
 - **Subscribe:** Preview the latest briefing and join the list at [options-insight.ravishankars.com](https://options-insight.ravishankars.com/).
 
+## Newsletter Sample
+![Newsletter Sample](assets/newsletter-sample.png)
+
 ---
 
 ## Why this Exists
