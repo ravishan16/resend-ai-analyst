@@ -210,6 +210,8 @@ async function testEmail() {
                 historicalVolatility: 28.3,
                 expectedMove: 8.75,
                 optionsVolume: 15000,
+                fiftyTwoWeekHigh: 123.00, // Added for Mock Test Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
+                fiftyTwoWeekLow: 456.00, // Added for Mock Test Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
                 technicalIndicators: { rsi: 68.5, atr: 2.15 }
             }
         },
