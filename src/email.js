@@ -28,7 +28,7 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
         
         const resend = new Resend(apiKey);
         const today = new Date().toDateString();
-        const from = options.from || 'newsletter@ravishankars.com';
+        const from = options.from || 'newsletter@varunkumars.com';
         const opportunityCount = options.opportunityCount ?? (content?.length || 0);
         const subjectTag = options.subjectTag || `${opportunityCount} ${opportunityCount === 1 ? 'Opportunity' : 'Opportunities'}`;
 
