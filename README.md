@@ -26,22 +26,26 @@
 </a>
 
 ## TL;DR
+
 - **What it is:** Autonomous Cloudflare Worker that scans upcoming earnings, enriches with volatility and sentiment analysis, and delivers a newsletter via Resend.
 - **Why it matters:** Retail options traders receive quantitative stats, AI commentary, and strategies every weekday morning.
 - **Performance:** Yahoo Finance optimized architecture, sub-200ms quotes, 100% reliability, 69/69 passing tests.
 - **Subscribe:** [options-insight.ravishankars.com](https://options-insight.ravishankars.com/).
 
 ## Newsletter Sample
+
 ![Newsletter Sample](assets/newsletter-sample.png)
 
 ---
 
 ## Why this Exists
+
 Options Insight automates the manual options workflow into a deterministic pipeline: scan > filter > analyze > narrate > publish. Traders get consistent, reviewable context.
 
 ---
 
 ## How the System Works (Optimized Pipeline)
+
 1. **Market Radar:** Finnhub earnings calendar filtered to curated universe (`src/config.js`) and 1–45 day lookahead.
 2. **Yahoo Finance Primary:** High-performance data provider, sub-200ms quotes, historical data, smart caching.
 3. **Quant Analysis:** `simplified-data.js` calculates volatility, RSI, price ranges, and scores opportunities.
@@ -53,6 +57,7 @@ Options Insight automates the manual options workflow into a deterministic pipel
 ## Performance Architecture
 
 ### 🚀 Yahoo Finance Optimized
+
 - **Primary Data Source:** Yahoo Finance (free, reliable, fast)
 - **Quote Performance:** 67-255ms average
 - **Historical Data:** 60-day volatility calculations
@@ -60,6 +65,7 @@ Options Insight automates the manual options workflow into a deterministic pipel
 - **Rate Limiting:** 500ms delays
 
 ### 📊 Data Quality Metrics
+
 - **Success Rate:** 100% Yahoo Finance reliability
 - **Fallback Usage:** <1% (Finnhub rarely needed)
 - **Real Data Coverage:** 100%
@@ -109,6 +115,7 @@ flowchart TD
 Traders sign up via Cloudflare Pages, POST to `/subscribe`, join the Resend audience, and receive daily research with unsubscribe managed by Resend.
 
 **Performance Highlights:**
+
 - **Yahoo Finance:** Sub-200ms, 100% reliability
 - **Smart Caching:** 5-min TTL
 - **Graceful Fallbacks:** Finnhub backup
@@ -128,6 +135,7 @@ Traders sign up via Cloudflare Pages, POST to `/subscribe`, join the Resend audi
 | Compute | **Cloudflare Workers** | Cron trigger, API endpoints, pipeline orchestration | Runs at 08:00 UTC weekdays (see `wrangler.toml`) |
 
 ### 🚀 Performance Optimizations
+
 - **Yahoo Finance Primary:** 67-255ms average quote response time
 - **Smart Caching:** 5-minute TTL reduces redundant API calls by ~80%
 - **Rate Optimization:** 500ms delays = 58% faster bulk processing
@@ -150,6 +158,7 @@ Emoji-prefixed logs at each stage; see `make test-full-run` for transcript.
 ## Local Quickstart
 
 ### 1. Install Tooling
+
 Node.js 20+ required.
 
 ```sh
@@ -157,6 +166,7 @@ npm install
 ```
 
 ### 2. Configure Secrets
+
 Create `.env` for CLI and Make targets:
 
 ```bash
@@ -171,6 +181,7 @@ SUMMARY_EMAIL_RECIPIENT=********@gmail.com
 ```
 
 > **Rate-limit performance**
+>
 > - **Yahoo Finance:** No API limits, sub-200ms response times, 100% reliability
 > - **Smart Caching:** 5-minute TTL reduces API calls by ~80% during bulk operations
 > - **Finnhub:** 60 calls/min free tier—ample for daily earnings scans
@@ -178,6 +189,7 @@ SUMMARY_EMAIL_RECIPIENT=********@gmail.com
 > - **Gemini:** Quotas vary by account; failures default to skipping analysis so email still sends
 
 ### 3. Run Sanity Tests
+
 ```sh
 make test-finnhub      # Earnings scan
 make test-yahoo        # Quote + volatility pipeline
@@ -185,6 +197,7 @@ make test-email        # Render newsletter preview
 ```
 
 ### 4. Preview Newsletter Locally
+
 ```sh
 make preview-email
 open email-preview.html
@@ -211,23 +224,31 @@ Emoji logs announce each stage; Yahoo Finance successes show response times, Fin
 ## Deploying to Cloudflare
 
 1. **Push secrets:**
+
    ```sh
    make push-secrets
    ```
+
 2. **Deploy:**
+
    ```sh
    make deploy
    ```
+
 3. **Verify:**
+
    ```sh
    make verify-deployment
    ```
+
 4. **Manual trigger:**
+
    ```sh
    make trigger-production
    ```
 
 ### Production Endpoints
+
 - `GET /health` – Liveness probe
 - `GET /status` – API key inventory (masked)
 - `POST /trigger` – Run pipeline (requires `x-trigger-secret`)
@@ -299,6 +320,7 @@ Licensed under [MIT License](LICENSE). Contributions are covered by the same lic
 ---
 
 ## Compliance & Disclaimers
+
 - Outputs are educational research, not investment advice.
 - Options carry risk; confirm assumptions independently.
 - Source code is open—preserve explanatory logging.
@@ -306,6 +328,6 @@ Licensed under [MIT License](LICENSE). Contributions are covered by the same lic
 ---
 
 ## Further Reading
+
 - [Product Requirements Document](PRD.md)
 - `src/` – Component implementations (`finnhub.js`, `simplified-data.js`, `gemini.js`, `email-template.js`)
-
