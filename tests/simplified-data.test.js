@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SimplifiedDataProvider } from '../src/simplified-data.js';
+import SimplifiedDataProvider from '../src/simplified-data.js';
 
 describe('SimplifiedDataProvider - getVolatilityAnalysis', () => {
   let provider;
