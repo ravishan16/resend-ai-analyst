@@ -15,8 +15,8 @@ export default defineConfig({
         'pages/**',
         'test-*.js',
         'vitest.config.js',
-        'src/cli.js', // CLI utility, not core functionality
-        'src/email-renderer.js' // Browser-specific, hard to test in Node
+        'src/cli.js',
+        'src/email-renderer.js'
       ],
       thresholds: {
         global: {

@@ -50,7 +50,6 @@ const EmailTemplate = ({
 
           return `
           <div class="opportunity-card" style="margin: 12px 0; padding: 16px; border: 1px solid ${palette.accent}; border-radius: 8px; background-color: ${index % 2 === 0 ? palette.surface : palette.highlight};">
-            <!-- Header Row -->
             <table class="header-table" style="width: 100%; margin-bottom: 8px;">
               <tr>
                 <td style="width: 70%; vertical-align: middle;">
@@ -92,7 +91,6 @@ const EmailTemplate = ({
               </tr>
             </table>
             
-            <!-- Compact Metrics Table -->
             <table class="metrics-table" style="width: 100%; font-size: 11px; color: ${palette.text}; border-collapse: collapse;">
               <tr>
                 <td style="padding: 4px 8px 4px 0; font-weight: 500; width: 20%;">IV/HV:</td>
@@ -144,7 +142,6 @@ const EmailTemplate = ({
               </tr>
             </table>
             
-            <!-- Strategies (if any) -->
             ${
               analysis.strategies && analysis.strategies.length > 0
                 ? `
@@ -181,7 +178,7 @@ const EmailTemplate = ({
       ? generateConsolidatedRecommendation(opportunities, marketContext)
       : "";
 
-  return `
+  const rawHtml = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -253,7 +250,6 @@ const EmailTemplate = ({
       <body style="margin: 0; padding: 0; background-color: ${palette.background}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: ${palette.text};">
         <div class="container" style="max-width: 600px; margin: 0 auto; background-color: ${palette.surface}; box-shadow: 0 12px 24px rgba(58, 58, 58, 0.15); border-radius: 12px; overflow: hidden;">
           
-          <!-- Header -->
           <div class="header-padding" style="padding: 28px; background: linear-gradient(135deg, ${palette.primaryDark} 0%, ${palette.primary} 100%); text-align: center;">
             <h1 style="color: ${palette.surface}; margin: 0 0 8px 0; font-size: 26px; font-weight: bold; letter-spacing: 0.02em;">
               🎯 Options Insight
@@ -263,7 +259,6 @@ const EmailTemplate = ({
             </p>
           </div>
 
-          <!-- Summary -->
           <div class="content" style="padding: 22px 28px; background-color: ${palette.highlight}; border-bottom: 1px solid ${palette.accent};">
             <p style="margin: 0; font-size: 14px; color: ${palette.text}; line-height: 1.6;">
               Today's analysis identified <strong>${opportunities.length} high-quality earnings opportunities</strong> using volatility 
@@ -272,7 +267,6 @@ const EmailTemplate = ({
             ${digestNote ? `<p style="margin: 12px 0 0 0; font-size: 13px; color: ${palette.muted}; line-height: 1.6;">${digestNote}</p>` : ""}
           </div>
 
-          <!-- Opportunities -->
           <div style="padding: 0;">
             <h2 style="font-size: 16px; font-weight: 600; margin: 24px 28px 8px 28px; color: ${palette.text}; text-transform: uppercase; letter-spacing: 0.08em;">
               📊 Earnings Opportunities
@@ -280,10 +274,8 @@ const EmailTemplate = ({
             ${opportunitiesHtml}
           </div>
 
-          <!-- AI Recommendation -->
           ${aiRecommendation}
 
-          <!-- Market Context -->
           ${
             marketContext.vix
               ? `
@@ -301,7 +293,6 @@ const EmailTemplate = ({
               : ""
           }
 
-          <!-- Key Terms -->
           <div style="margin: 24px 28px; padding: 18px; background-color: ${palette.surface}; border: 1px solid ${palette.accent}; border-radius: 8px;">
             <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0; color: ${palette.primaryDark}; text-transform: uppercase; letter-spacing: 0.05em;">
               📚 Key Terms
@@ -316,7 +307,6 @@ const EmailTemplate = ({
             </div>
           </div>
 
-          <!-- Important Disclaimer -->
           <div style="margin: 24px 28px; padding: 22px; background-color: #F8E6DC; border: 2px solid ${palette.primaryDark}; border-radius: 10px;">
             <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 12px 0; color: ${palette.primaryDark}; display: flex; align-items: center; letter-spacing: 0.04em;">
               ⚠️ Important Disclaimer
@@ -336,7 +326,6 @@ const EmailTemplate = ({
             </div>
           </div>
 
-          <!-- Footer -->
           <div style="padding: 22px 28px; background-color: ${palette.background}; border-top: 1px solid ${palette.accent}; text-align: center;">
             <p style="font-size: 11px; color: ${palette.muted}; margin: 0 0 8px 0; line-height: 1.5;">
               Powered by Finnhub, Yahoo Finance, and Google Gemini
@@ -353,6 +342,9 @@ const EmailTemplate = ({
       </body>
     </html>
   `;
+
+  // Added for Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
+  return hyperlinkTickers(rawHtml);
 };
 
 // Helper function to generate consolidated AI recommendation
@@ -428,6 +420,27 @@ function getVixGuidance(vix) {
   if (vix < 15) return "Low fear, premium selling favored";
   if (vix < 25) return "Normal conditions, balanced strategies";
   return "High fear, consider premium buying";
+}
+
+/**
+ * Helper: Add clickable hyperlinks to ticker symbols in newsletter HTML.
+ * Added for Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
+ *
+ * This function searches for patterns like $AAPL or $MSFT in the HTML
+ * and replaces them with secure clickable links to Yahoo Finance.
+ *
+ * Example:
+ * $AAPL → <a href="https://finance.yahoo.com/quote/AAPL" target="_blank" rel="noopener noreferrer">$AAPL</a>
+ *
+ * @param {string} html - The HTML content containing ticker symbols.
+ * @returns {string} - The HTML content with ticker symbols hyperlinked.
+ */
+function hyperlinkTickers(html) {
+  return html.replace(
+    /\$([A-Z]{1,5})\b/g,
+    (match, ticker) =>
+      `<a href="https://finance.yahoo.com/quote/${ticker}" target="_blank" rel="noopener noreferrer">${match}</a>`
+  );
 }
 
 export default EmailTemplate;

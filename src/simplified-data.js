@@ -466,11 +466,11 @@ class SimplifiedDataProvider {
         technicalIndicators: {
           rsi: this.estimateRSI(symbol, quote.changePercent),
         },
-        weeklyRange: this.calculate5WeekRange(
+        /* weeklyRange: this.calculate5WeekRange(
           symbol,
           quote.price,
           historicalData
-        ),
+        ), */ // Removed for Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
         fiftyTwoWeekHigh,
         fiftyTwoWeekLow,
         dataQuality,
@@ -513,8 +513,8 @@ class SimplifiedDataProvider {
 
   /**
    * Calculate 5-week price range from historical data or estimate
-   */
-  calculate5WeekRange(symbol, currentPrice, historicalData) {
+   */ // Removed for Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
+  /* calculate5WeekRange(symbol, currentPrice, historicalData) {
     if (
       historicalData &&
       historicalData.prices &&
@@ -548,7 +548,7 @@ class SimplifiedDataProvider {
         source: "estimated",
       };
     }
-  }
+  } */
 
   /**
    * Estimate options volume based on stock volume and symbol characteristics
