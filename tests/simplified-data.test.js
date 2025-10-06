@@ -10,7 +10,7 @@ describe("SimplifiedDataProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     provider = new SimplifiedDataProvider({
-      finnhubApiKey: "test-key",
+      finnhubApiKey: process.env.FINNHUB_API_KEY,
       requestDelay: 100,
     });
   });
