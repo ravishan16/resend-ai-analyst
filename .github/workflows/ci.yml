@@ -26,6 +26,9 @@ jobs:
         
       - name: Run tests with coverage
         run: npm run test:coverage
+        # 🔑 CRITICAL FIX: Pass the FINNHUB_API_KEY to the test execution step
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
