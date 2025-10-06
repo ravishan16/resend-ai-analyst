@@ -19,7 +19,7 @@
 </p>
 
 ## TL;DR
-- **What it is:** An autonomous Cloudflare Worker that scans upcoming earnings, enriches them with volatility and sentiment analysis, and delivers a polished newsletter via Resend.
+- **What it is:** Options Insight gives retail traders an edge by automatically analyzing upcoming earnings, enriching them with volatility and sentiment data, and delivering a powerful, easy-to-read newsletter to your inbox every morning.
 - **Why it matters:** Retail options traders get institutional-style prep without the manual grind—quantitative stats, AI commentary, and playbook-ready strategies arrive every weekday morning.
 - **Performance:** Yahoo Finance optimized architecture delivering sub-200ms quotes with 100% reliability and 69/69 passing tests.
 - **Subscribe:** Preview the latest briefing and join the list at [options-insight.ravishankars.com](https://options-insight.ravishankars.com/).
