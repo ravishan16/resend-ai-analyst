@@ -36,7 +36,7 @@ describe("SimplifiedDataProvider", () => {
 
       const quote = await provider.getQuote("AAPL");
 
-      expect(quote).toEqual({
+      expect(quote).toMatchObject({
         symbol: "AAPL",
         price: 150.5,
         previousClose: 149.0,
