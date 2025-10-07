@@ -60,8 +60,11 @@ async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
  * @throws Will throw an error if the Finnhub API key is not set,
  *         if the response is invalid, or if 52-week data is missing.
  */
-async function get52WeekRange(symbol) {
+async function get52WeekRange(symbol, apiKey) {
   if (!FINNHUB_API_KEY) throw new Error("Finnhub API key not set");
+  if (!apiKey) {
+    throw new Error("Finnhub API key not set"); 
+  }
 
   const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${FINNHUB_API_KEY}`;
 
@@ -419,7 +422,7 @@ class SimplifiedDataProvider {
     let fiftyTwoWeekLow = null;
 
     try {
-      const range = await get52WeekRange(symbol);
+      const range = await get52WeekRange(symbol, this.finnhubApiKey);
       fiftyTwoWeekHigh = range.high;
       fiftyTwoWeekLow = range.low;
       // Print the values right after assignment
