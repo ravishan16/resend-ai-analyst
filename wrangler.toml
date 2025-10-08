@@ -2,12 +2,12 @@ name = "options-insight"
 main = "src/index.js"
 compatibility_date = "2024-05-01" # Updated to a more recent date
 
-# This section defines environment variables that will be injected 
+# This section defines non-sensitive environment variables that will be injected 
 # into the Cloudflare worker's 'env' object.
+#
+# IMPORTANT: Do NOT put secrets here. Use `wrangler secret put` (or `make push-secrets`)
+# for values like FINNHUB_API_KEY, RESEND_API_KEY, GEMINI_API_KEY, etc.
 [vars]
-# This binds the GitHub/Cloudflare Secret (FINNHUB_API_KEY)
-# so it can be accessed inside Cloudflare worker code as env.FINNHUB_API_KEY
-FINNHUB_API_KEY = "{{ FINNHUB_API_KEY }}"
 
 [triggers]
-crons = ["0 8 * * 1-5"]
+crons = ["0 10 * * 1-5"]

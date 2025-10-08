@@ -6,7 +6,7 @@ dev:
 
 deploy:
 	@echo "🚀 Deploying to Cloudflare Workers..."
-	@wrangler deploy
+	@VALIDATE_ENV_REQUIRED=1 node validate-config.js && wrangler deploy
 
 deploy-pages:
 	@echo "🌐 Deploying signup site to Cloudflare Pages..."
@@ -33,6 +33,10 @@ test-gemini:
 test-email:
 	@echo "📧 Testing email template and delivery..."
 	@node -r dotenv/config src/cli.js email
+
+test-summary-email:
+	@echo "📧 Sending test run summary email..."
+	@RECIPIENTS="$(RECIPIENTS)" node -r dotenv/config src/cli.js summary-email
 
 test-scoring:
 	@echo "🎯 Testing opportunity scoring algorithm..."

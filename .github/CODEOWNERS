@@ -1,0 +1,10 @@
+# Files that can impact secrets or deployments must be reviewed
+
+# Require review from repository owner for core config
+wrangler.toml @ravishan16
+.github/workflows/* @ravishan16
+.github/CODEOWNERS @ravishan16
+
+# Optional: require review for validation and security tests
+validate-config.js @ravishan16
+tests/config-security.test.js @ravishan16

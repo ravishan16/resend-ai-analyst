@@ -103,15 +103,37 @@ export function previewEmailTemplate(content, marketContext) {
 }
 
 /**
- * Send a post-run summary email to the maintainer.
+ * Send a post-run summary email to one or more recipients.
+ * @param {string} apiKey - Resend API key
+ * @param {object} summary - Pipeline run summary
+ * @param {string|string[]} recipientEmails - Single email or an array of emails
+ * @param {object} [options]
  */
-export async function sendRunSummaryEmail(apiKey, summary, recipientEmail, options = {}) {
+export async function sendRunSummaryEmail(apiKey, summary, recipientEmails, options = {}) {
     if (!apiKey) {
         throw new Error('RESEND_API_KEY is required to send summary emails');
     }
 
-    if (!recipientEmail) {
+    if (!recipientEmails) {
         throw new Error('Recipient email is required for run summary notifications');
+    }
+
+    let toList;
+    if (Array.isArray(recipientEmails)) {
+        toList = recipientEmails.filter(Boolean).map(v => String(v).trim()).filter(v => v.length > 0);
+    } else if (typeof recipientEmails === 'string') {
+        toList = recipientEmails
+            .split(/[;,\n]/)
+            .map(v => v.trim())
+            .filter(v => v.length > 0);
+    } else {
+        toList = [];
+    }
+
+    const uniqueList = Array.from(new Map(toList.map(e => [e.toLowerCase(), e])).values());
+
+    if (!uniqueList.length) {
+        throw new Error('No valid recipient emails provided for run summary notifications');
     }
 
     const resend = new Resend(apiKey);
@@ -124,19 +146,36 @@ export async function sendRunSummaryEmail(apiKey, summary, recipientEmail, optio
     const htmlBody = buildSummaryHtml(summary, { startedAt, finishedAt, statusEmoji });
     const textBody = buildSummaryText(summary, { startedAt, finishedAt, statusEmoji });
 
-    const { data, error } = await resend.emails.send({
+    const payload = {
         from,
-        to: recipientEmail,
+        to: uniqueList,
         subject,
         html: htmlBody,
         text: textBody
-    });
+    };
 
-    if (error) {
+    const maxRetries = typeof options.maxRetries === 'number' ? options.maxRetries : 3;
+    const baseDelayMs = typeof options.baseDelayMs === 'number' ? options.baseDelayMs : 700;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const { data, error } = await resend.emails.send(payload);
+        if (!error) {
+            return data;
+        }
+
+        const status = error?.statusCode || error?.status || 0;
+        const name = (error?.name || '').toLowerCase();
+        const isRateLimited = status === 429 || name.includes('rate_limit');
+
+        if (isRateLimited && attempt < maxRetries) {
+            const delayMs = Math.round(baseDelayMs * Math.pow(2, attempt) + Math.random() * 150);
+            console.warn(`⚠️  Resend rate limited on summary email (attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${delayMs}ms...`);
+            await new Promise(res => setTimeout(res, delayMs));
+            continue;
+        }
+
         throw new Error(`Resend summary email failed: ${JSON.stringify(error)}`);
     }
-
-    return data;
 }
 
 function buildSummaryHtml(summary, context) {

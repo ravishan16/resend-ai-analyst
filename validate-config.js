@@ -8,6 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import { SENSITIVE_KEYS } from './src/config/constants.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +43,12 @@ const CONFIG_FILES = [
 
 console.log('🔍 Validating Options Insight Configuration...\n');
 
+// Strictness controls: by default do NOT fail CI on missing env vars.
+// Enable strict env checks by setting VALIDATE_ENV_REQUIRED=1 or passing --strict-env.
+const args = process.argv.slice(2);
+const strictEnv = (process.env.VALIDATE_ENV_REQUIRED === '1' || args.includes('--strict-env'))
+    && process.env.SKIP_ENV_VALIDATION !== '1';
+
 let hasErrors = false;
 
 // 1. Validate environment variables
@@ -53,8 +60,12 @@ console.log('\n✅ Required Variables:');
 for (const envVar of REQUIRED_ENV_VARS) {
     const value = process.env[envVar];
     if (!value) {
-        console.log(`❌ ${envVar}: MISSING`);
-        hasErrors = true;
+        if (strictEnv) {
+            console.log(`❌ ${envVar}: MISSING`);
+            hasErrors = true;
+        } else {
+            console.log(`⚪ ${envVar}: Not set (skipped in non-strict mode)`);
+        }
     } else {
         const masked = value.substring(0, 8) + '*'.repeat(Math.max(0, value.length - 8));
         console.log(`✅ ${envVar}: ${masked}`);
@@ -102,6 +113,25 @@ for (const configFile of CONFIG_FILES) {
                 }
                 if (!wrangler.includes('compatibility_date')) {
                     console.log(`   ⚠️  Missing compatibility_date`);
+                }
+
+                // Security check: Ensure no sensitive keys are bound in [vars]
+                const varsMatch = wrangler.match(/(?:^|\n)\[vars\](?:\n|\r\n)([\s\S]*?)(?=(?:\n|\r\n)\[\w+]|$)/);
+                if (varsMatch) {
+                    const varsSection = varsMatch[1];
+                    const violations = SENSITIVE_KEYS.filter(k => new RegExp(`^\\s*${k}\\s*=`, 'm').test(varsSection));
+                    if (violations.length) {
+                        console.log(`   ❌ Sensitive keys found in [vars]: ${violations.join(', ')}`);
+                        console.log('      Move these to Cloudflare Secrets using: wrangler secret put <NAME>');
+                        hasErrors = true;
+                    }
+                    // Additionally, block template placeholders like {{ KEY }} which can overwrite secrets
+                    const templateLeak = varsSection.match(/\{\{\s*[A-Z0-9_]+\s*\}\}/g);
+                    if (templateLeak) {
+                        console.log(`   ❌ Template placeholders found in [vars]: ${[...new Set(templateLeak)].join(', ')}`);
+                        console.log('      Remove placeholders and rely on Secrets to prevent plaintext overwrites.');
+                        hasErrors = true;
+                    }
                 }
             }
         } catch (error) {

@@ -1,7 +1,7 @@
 import { getEarningsOpportunities, getMarketContext } from './finnhub.js';
 import { getBulkVolatilityAnalysis } from './real-volatility.js';
 import { generateTradingIdeas, validateAnalysis } from './gemini.js';
-import { sendEmailDigest, previewEmailTemplate } from './email.js';
+import { sendEmailDigest, previewEmailTemplate, sendRunSummaryEmail } from './email.js';
 
 async function main() {
     const [,, command, ...args] = process.argv;
@@ -35,6 +35,9 @@ async function main() {
             case 'preview-email':
                 await previewEmail();
                 break;
+            case 'summary-email':
+                await testSummaryEmail();
+                break;
             case 'test-stock':
                 await testSpecificStock();
                 break;
@@ -56,6 +59,7 @@ async function main() {
                 console.log('  pipeline       - Test complete data pipeline');
                 console.log('  full-run       - Simulate complete daily run');
                 console.log('  preview-email  - Preview email template');
+        console.log('  summary-email  - Send a test run summary email');
                 console.log('  test-stock     - Test specific stock (set SYMBOL env var)');
                 console.log('  validate-keys  - Validate all API keys');
         }
@@ -290,75 +294,135 @@ async function testFullRun() {
     }
     
     try {
+        const startedAtMs = Date.now();
+        const summary = {
+            success: false,
+            startedAt: new Date().toISOString(),
+            finishedAt: null,
+            durationMs: null,
+            steps: [],
+            metrics: {
+                newsletterSent: false
+            },
+            errors: []
+        };
+
+        const addStep = (name, status, detail) => {
+            summary.steps.push({ name, status, detail });
+        };
+
         console.log('1. 📊 Scanning earnings opportunities...');
         const opportunities = await getEarningsOpportunities(FINNHUB_API_KEY, ALPHA_VANTAGE_API_KEY);
         console.log(`   ✅ Found ${opportunities.length} qualified opportunities`);
+        addStep('Scan earnings opportunities', 'success', `${opportunities.length} opportunities analyzed`);
+        summary.metrics.totalOpportunities = opportunities.length;
 
         console.log('2. 🌍 Getting market context...');
         const marketContext = await getMarketContext(FINNHUB_API_KEY);
         console.log(`   ✅ VIX: ${marketContext.vix?.toFixed(1)} | Regime: ${marketContext.marketRegime}`);
+        addStep('Fetch market context', 'success', `VIX ${marketContext.vix?.toFixed(1) ?? 'N/A'}, Regime: ${marketContext.marketRegime || 'Unknown'}`);
+        summary.metrics.vix = marketContext.vix;
+        summary.metrics.marketRegime = marketContext.marketRegime;
+
+        let emailContent = [];
+        let validatedContent = [];
+        let contextPayload = null;
+        let subjectTag = undefined;
 
         if (opportunities.length === 0) {
             console.log('   ℹ️  No opportunities cleared the screen – generating context-only digest');
-
             const digestNote = 'No qualifying earnings setups cleared the filters today—delivering context only.';
-            const contextPayload = { ...(marketContext || {}), digestNote };
-
-            console.log('3. 📧 Sending context-only newsletter...');
-            const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
-                opportunityCount: 0,
-                subjectTag: 'No Screened Setups'
-            });
-            console.log(`   ✅ Broadcast dispatched - ID: ${result.broadcastId}`);
-
-            console.log('\n🎉 Full run completed successfully (context-only update)!');
-            return;
-        }
-
-        console.log('3. 🤖 Generating AI analysis...');
-        const emailContent = await generateTradingIdeas(GEMINI_API_KEY, opportunities, marketContext);
-        console.log(`   ✅ Generated ${emailContent.length} analyses`);
-
-        console.log('4. 🛡️ Validating analyses...');
-        const validatedContent = emailContent.filter(item => {
-            const validation = validateAnalysis(item.analysis);
-            if (!validation.isValid) {
-                console.warn(`   ⚠️  Filtering out ${item.opportunity.symbol}: ${validation.issues.join(', ')}`);
-                return false;
-            }
-            return true;
-        });
-
-        if (validatedContent.length === 0) {
-            console.log('   ℹ️  All analyses were held by the quality gate – sending context-only digest');
-
-            const digestNote = 'All screened names were held by the quality gate—see context below while we wait for better setups.';
-            const contextPayload = { ...(marketContext || {}), digestNote };
-
-            console.log('5. 📧 Sending context-only newsletter...');
-            const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
-                opportunityCount: 0,
-                subjectTag: 'Quality Gate Hold'
-            });
-            console.log(`   ✅ Broadcast dispatched - ID: ${result.broadcastId}`);
-
-            console.log('\n🎉 Full run completed successfully (quality gate update)!');
-            return;
-        }
-
-        if (validatedContent.length !== emailContent.length) {
-            console.log(`   ⚠️  ${validatedContent.length} analyses passed validation; ${emailContent.length - validatedContent.length} filtered out`);
+            contextPayload = { ...(marketContext || {}), digestNote };
+            subjectTag = 'No Screened Setups';
+            addStep('Generate AI analysis', 'skipped', 'No opportunities available');
         } else {
-            console.log(`   ✅ ${validatedContent.length} analyses passed validation`);
+            console.log('3. 🤖 Generating AI analysis...');
+            emailContent = await generateTradingIdeas(GEMINI_API_KEY, opportunities, marketContext);
+            console.log(`   ✅ Generated ${emailContent.length} analyses`);
+            addStep('Generate AI analysis', 'success', `Generated ${emailContent.length} analyses`);
+
+            console.log('4. 🛡️ Validating analyses...');
+            validatedContent = emailContent.filter(item => {
+                const validation = validateAnalysis(item.analysis);
+                if (!validation.isValid) {
+                    console.warn(`   ⚠️  Filtering out ${item.opportunity.symbol}: ${validation.issues.join(', ')}`);
+                    return false;
+                }
+                return true;
+            });
+
+            summary.metrics.generatedAnalyses = emailContent.length;
+            summary.metrics.validatedAnalyses = validatedContent.length;
+
+            if (validatedContent.length === 0) {
+                console.log('   ℹ️  All analyses were held by the quality gate – sending context-only digest');
+                const digestNote = 'All screened names were held by the quality gate—see context below while we wait for better setups.';
+                contextPayload = { ...(marketContext || {}), digestNote };
+                subjectTag = 'Quality Gate Hold';
+                addStep('Validate analyses', 'warning', '0 passed; all filtered out');
+            } else {
+                if (validatedContent.length !== emailContent.length) {
+                    console.log(`   ⚠️  ${validatedContent.length} analyses passed validation; ${emailContent.length - validatedContent.length} filtered out`);
+                    addStep('Validate analyses', 'warning', `${validatedContent.length} passed; ${emailContent.length - validatedContent.length} filtered out`);
+                } else {
+                    console.log(`   ✅ ${validatedContent.length} analyses passed validation`);
+                    addStep('Validate analyses', 'success', `${validatedContent.length} analyses passed validation`);
+                }
+            }
         }
 
-        console.log('5. 📧 Sending newsletter...');
-        const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, validatedContent, marketContext, {
-            opportunityCount: validatedContent.length
-        });
-        console.log(`   ✅ Newsletter sent - Broadcast ID: ${result.broadcastId}`);
+        console.log(`${contextPayload ? '5' : '5'}. 📧 Sending newsletter...`);
+        const result = await sendEmailDigest(
+            RESEND_API_KEY,
+            AUDIENCE_ID,
+            contextPayload ? [] : validatedContent,
+            contextPayload ? contextPayload : marketContext,
+            {
+                opportunityCount: contextPayload ? 0 : validatedContent.length,
+                ...(subjectTag ? { subjectTag } : {})
+            }
+        );
+        console.log(`   ✅ ${contextPayload ? 'Broadcast dispatched' : 'Newsletter sent'} - Broadcast ID: ${result.broadcastId}`);
+        addStep('Send newsletter', 'success', `Broadcast dispatched (ID: ${result.broadcastId})`);
+        summary.metrics.newsletterSent = true;
+        summary.metrics.broadcastId = result.broadcastId;
+        summary.metrics.recipientCount = result.recipientCount;
+        summary.metrics.completedAt = result.timestamp;
+        summary.metrics.newsletterReason = contextPayload ? (subjectTag === 'No Screened Setups' ? 'no-opportunities' : 'quality-gate') : 'opportunities-published';
 
-        console.log('\n🎉 Full run completed successfully (opportunities published)!');
+        // Finalize summary
+        summary.finishedAt = new Date().toISOString();
+        summary.durationMs = Date.now() - startedAtMs;
+        summary.success = summary.errors.length === 0;
+
+        // Optionally send run summary email (requires recipients)
+    const from = process.env.SUMMARY_EMAIL_FROM || 'alerts@ravishankars.com';
+    const rawRecipients = process.env.RECIPIENTS || process.env.SUMMARY_EMAIL_RECIPIENT;
+        const recipients = rawRecipients
+            ? Array.from(new Map(
+                String(rawRecipients)
+                    .split(/[;,\n]/)
+                    .map(s => s.trim())
+                    .filter(Boolean)
+                    .map(e => [e.toLowerCase(), e])
+              ).values())
+            : [];
+
+        if (!RESEND_API_KEY || recipients.length === 0) {
+            console.log('ℹ️  Skipping run summary email (set RESEND_API_KEY and RECIPIENTS or SUMMARY_EMAIL_RECIPIENT)');
+        } else {
+            // Small pause to avoid back-to-back API calls after broadcast send
+            await new Promise(res => setTimeout(res, 500));
+            console.log(`📬 Sending run summary to: ${recipients.join(', ')}`);
+            try {
+                await sendRunSummaryEmail(RESEND_API_KEY, summary, recipients, { from });
+                console.log('✅ Summary email sent');
+            } catch (err) {
+                console.warn(`⚠️  Summary email failed: ${err.message}`);
+            }
+        }
+
+        console.log(`\n🎉 Full run completed successfully (${contextPayload ? (subjectTag === 'No Screened Setups' ? 'context-only update' : 'quality gate update') : 'opportunities published'})!`);
         
     } catch (error) {
         console.error('❌ Full run failed:', error.message);
@@ -430,6 +494,53 @@ async function previewEmail() {
     
     console.log(`✅ Email preview saved to: ${previewPath}`);
     console.log('   Open this file in your browser to see the email template');
+}
+
+async function testSummaryEmail() {
+    console.log('📧 Testing run summary email...');
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.SUMMARY_EMAIL_FROM || 'alerts@ravishankars.com';
+    const rawRecipients = process.env.RECIPIENTS || process.env.SUMMARY_EMAIL_RECIPIENT;
+
+    if (!apiKey) {
+        throw new Error('RESEND_API_KEY environment variable is not set');
+    }
+
+    if (!rawRecipients) {
+        throw new Error('No recipients provided. Set RECIPIENTS or SUMMARY_EMAIL_RECIPIENT');
+    }
+
+    const recipients = String(rawRecipients)
+        .split(/[;,\n]/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const startedAt = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    const summary = {
+        success: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        durationMs: 3 * 60 * 1000,
+        steps: [
+            { name: 'Validate environment', status: 'success', detail: 'All required secrets present' },
+            { name: 'Scan earnings opportunities', status: 'success', detail: '12 opportunities analyzed' },
+            { name: 'Generate AI analysis', status: 'success', detail: '9 analyses generated' },
+            { name: 'Validate analyses', status: 'warning', detail: '7 passed, 2 filtered out' },
+            { name: 'Send newsletter', status: 'success', detail: 'Broadcast dispatched (ID: test-123)' }
+        ],
+        metrics: {
+            newsletterSent: true,
+            broadcastId: 'test-123',
+            recipientCount: 1,
+            vix: 18.4,
+            marketRegime: 'normal'
+        },
+        errors: []
+    };
+
+    console.log(`Sending summary to: ${recipients.join(', ')}`);
+    await sendRunSummaryEmail(apiKey, summary, recipients, { from });
+    console.log('✅ Summary email sent');
 }
 
 async function testSpecificStock() {
