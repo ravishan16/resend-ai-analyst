@@ -42,6 +42,12 @@ const CONFIG_FILES = [
 
 console.log('🔍 Validating Options Insight Configuration...\n');
 
+// Strictness controls: by default do NOT fail CI on missing env vars.
+// Enable strict env checks by setting VALIDATE_ENV_REQUIRED=1 or passing --strict-env.
+const args = process.argv.slice(2);
+const strictEnv = (process.env.VALIDATE_ENV_REQUIRED === '1' || args.includes('--strict-env'))
+    && process.env.SKIP_ENV_VALIDATION !== '1';
+
 let hasErrors = false;
 
 // 1. Validate environment variables
@@ -53,8 +59,12 @@ console.log('\n✅ Required Variables:');
 for (const envVar of REQUIRED_ENV_VARS) {
     const value = process.env[envVar];
     if (!value) {
-        console.log(`❌ ${envVar}: MISSING`);
-        hasErrors = true;
+        if (strictEnv) {
+            console.log(`❌ ${envVar}: MISSING`);
+            hasErrors = true;
+        } else {
+            console.log(`⚪ ${envVar}: Not set (skipped in non-strict mode)`);
+        }
     } else {
         const masked = value.substring(0, 8) + '*'.repeat(Math.max(0, value.length - 8));
         console.log(`✅ ${envVar}: ${masked}`);
