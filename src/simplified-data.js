@@ -18,7 +18,7 @@
 // Note: Use the global fetch provided by the runtime (Node 18+/Workers)
 // Avoid importing node-fetch so tests can mock global fetch reliably.
 
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
+// FIX: Removed const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY; to fix Cloudflare deployment error
 
 /**
  * Helper: fetch a URL with retry and exponential backoff.
@@ -55,15 +55,17 @@ async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
  * Added for Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
  *
  * @param {string} symbol - Stock ticker symbol (e.g., 'AAPL').
+ * @param {string} apiKey - The Finnhub API key. // FIX: Added apiKey as argument
  * @returns {Promise<{high: number, low: number}>} - Object containing 52-week high and low.
  *
  * @throws Will throw an error if the Finnhub API key is not set,
- *         if the response is invalid, or if 52-week data is missing.
+ * if the response is invalid, or if 52-week data is missing.
  */
-async function get52WeekRange(symbol) {
-  if (!FINNHUB_API_KEY) throw new Error("Finnhub API key not set");
+async function get52WeekRange(symbol, apiKey) {
+  // FIX: Updated function signature
+  if (!apiKey) throw new Error("Finnhub API key not set"); // FIX: Used passed apiKey
 
-  const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${FINNHUB_API_KEY}`;
+  const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${apiKey}`; // FIX: Used passed apiKey
 
   const data = await fetchWithRetry(url);
 
@@ -417,7 +419,8 @@ class SimplifiedDataProvider {
     let fiftyTwoWeekLow = null;
 
     try {
-      const range = await get52WeekRange(symbol);
+      // FIX: Pass the API key from the instance property
+      const range = await get52WeekRange(symbol, this.finnhubApiKey);
       fiftyTwoWeekHigh = range.high;
       fiftyTwoWeekLow = range.low;
       // Print the values right after assignment
