@@ -146,19 +146,36 @@ export async function sendRunSummaryEmail(apiKey, summary, recipientEmails, opti
     const htmlBody = buildSummaryHtml(summary, { startedAt, finishedAt, statusEmoji });
     const textBody = buildSummaryText(summary, { startedAt, finishedAt, statusEmoji });
 
-    const { data, error } = await resend.emails.send({
+    const payload = {
         from,
         to: uniqueList,
         subject,
         html: htmlBody,
         text: textBody
-    });
+    };
 
-    if (error) {
+    const maxRetries = typeof options.maxRetries === 'number' ? options.maxRetries : 3;
+    const baseDelayMs = typeof options.baseDelayMs === 'number' ? options.baseDelayMs : 700;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const { data, error } = await resend.emails.send(payload);
+        if (!error) {
+            return data;
+        }
+
+        const status = error?.statusCode || error?.status || 0;
+        const name = (error?.name || '').toLowerCase();
+        const isRateLimited = status === 429 || name.includes('rate_limit');
+
+        if (isRateLimited && attempt < maxRetries) {
+            const delayMs = Math.round(baseDelayMs * Math.pow(2, attempt) + Math.random() * 150);
+            console.warn(`⚠️  Resend rate limited on summary email (attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${delayMs}ms...`);
+            await new Promise(res => setTimeout(res, delayMs));
+            continue;
+        }
+
         throw new Error(`Resend summary email failed: ${JSON.stringify(error)}`);
     }
-
-    return data;
 }
 
 function buildSummaryHtml(summary, context) {

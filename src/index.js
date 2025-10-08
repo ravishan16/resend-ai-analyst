@@ -439,7 +439,7 @@ async function processAndSendDigest(env) {
 }
 
 async function deliverRunSummary(env, summary) {
-    const rawRecipients = env.SUMMARY_EMAIL_RECIPIENT || env.STATUS_EMAIL_RECIPIENT;
+    const rawRecipients = env.SUMMARY_EMAIL_RECIPIENT;
     const parsedRecipients = rawRecipients
         ? String(rawRecipients)
             .split(/[;,\n]/)
