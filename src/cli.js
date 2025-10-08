@@ -1,7 +1,7 @@
 import { getEarningsOpportunities, getMarketContext } from './finnhub.js';
 import { getBulkVolatilityAnalysis } from './real-volatility.js';
 import { generateTradingIdeas, validateAnalysis } from './gemini.js';
-import { sendEmailDigest, previewEmailTemplate } from './email.js';
+import { sendEmailDigest, previewEmailTemplate, sendRunSummaryEmail } from './email.js';
 
 async function main() {
     const [,, command, ...args] = process.argv;
@@ -35,6 +35,9 @@ async function main() {
             case 'preview-email':
                 await previewEmail();
                 break;
+            case 'summary-email':
+                await testSummaryEmail();
+                break;
             case 'test-stock':
                 await testSpecificStock();
                 break;
@@ -56,6 +59,7 @@ async function main() {
                 console.log('  pipeline       - Test complete data pipeline');
                 console.log('  full-run       - Simulate complete daily run');
                 console.log('  preview-email  - Preview email template');
+        console.log('  summary-email  - Send a test run summary email');
                 console.log('  test-stock     - Test specific stock (set SYMBOL env var)');
                 console.log('  validate-keys  - Validate all API keys');
         }
@@ -430,6 +434,53 @@ async function previewEmail() {
     
     console.log(`✅ Email preview saved to: ${previewPath}`);
     console.log('   Open this file in your browser to see the email template');
+}
+
+async function testSummaryEmail() {
+    console.log('📧 Testing run summary email...');
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.SUMMARY_EMAIL_FROM || 'alerts@ravishankars.com';
+    const rawRecipients = process.env.RECIPIENTS || process.env.SUMMARY_EMAIL_RECIPIENT || process.env.STATUS_EMAIL_RECIPIENT;
+
+    if (!apiKey) {
+        throw new Error('RESEND_API_KEY environment variable is not set');
+    }
+
+    if (!rawRecipients) {
+        throw new Error('No recipients provided. Set RECIPIENTS or SUMMARY_EMAIL_RECIPIENT or STATUS_EMAIL_RECIPIENT');
+    }
+
+    const recipients = String(rawRecipients)
+        .split(/[;,\n]/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const startedAt = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    const summary = {
+        success: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        durationMs: 3 * 60 * 1000,
+        steps: [
+            { name: 'Validate environment', status: 'success', detail: 'All required secrets present' },
+            { name: 'Scan earnings opportunities', status: 'success', detail: '12 opportunities analyzed' },
+            { name: 'Generate AI analysis', status: 'success', detail: '9 analyses generated' },
+            { name: 'Validate analyses', status: 'warning', detail: '7 passed, 2 filtered out' },
+            { name: 'Send newsletter', status: 'success', detail: 'Broadcast dispatched (ID: test-123)' }
+        ],
+        metrics: {
+            newsletterSent: true,
+            broadcastId: 'test-123',
+            recipientCount: 1,
+            vix: 18.4,
+            marketRegime: 'normal'
+        },
+        errors: []
+    };
+
+    console.log(`Sending summary to: ${recipients.join(', ')}`);
+    await sendRunSummaryEmail(apiKey, summary, recipients, { from });
+    console.log('✅ Summary email sent');
 }
 
 async function testSpecificStock() {

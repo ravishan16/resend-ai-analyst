@@ -8,6 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import { SENSITIVE_KEYS } from './src/config/constants.js';
 
 // Load environment variables
 dotenv.config();
@@ -115,20 +116,10 @@ for (const configFile of CONFIG_FILES) {
                 }
 
                 // Security check: Ensure no sensitive keys are bound in [vars]
-                const sensitive = [
-                    'FINNHUB_API_KEY',
-                    'ALPHA_VANTAGE_API_KEY',
-                    'GEMINI_API_KEY',
-                    'RESEND_API_KEY',
-                    'AUDIENCE_ID',
-                    'SUMMARY_EMAIL_RECIPIENT',
-                    'SUMMARY_EMAIL_FROM',
-                    'TRIGGER_AUTH_SECRET'
-                ];
-                const hasVarsSection = /\n\[vars\]/.test(wrangler);
-                if (hasVarsSection) {
-                    const varsSection = wrangler.split(/\n\[vars\]/)[1] || '';
-                    const violations = sensitive.filter(k => new RegExp(`^${k}\s*=`, 'm').test(varsSection));
+                const varsMatch = wrangler.match(/(?:^|\n)\[vars\](?:\n|\r\n)([\s\S]*?)(?=(?:\n|\r\n)\[\w+]|$)/);
+                if (varsMatch) {
+                    const varsSection = varsMatch[1];
+                    const violations = SENSITIVE_KEYS.filter(k => new RegExp(`^\\s*${k}\\s*=`, 'm').test(varsSection));
                     if (violations.length) {
                         console.log(`   ❌ Sensitive keys found in [vars]: ${violations.join(', ')}`);
                         console.log('      Move these to Cloudflare Secrets using: wrangler secret put <NAME>');

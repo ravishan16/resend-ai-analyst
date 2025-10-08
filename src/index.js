@@ -439,23 +439,30 @@ async function processAndSendDigest(env) {
 }
 
 async function deliverRunSummary(env, summary) {
-    const recipient = env.SUMMARY_EMAIL_RECIPIENT || env.STATUS_EMAIL_RECIPIENT || 'ravishankar.sivasubramaniam@gmail.com';
+    const rawRecipients = env.SUMMARY_EMAIL_RECIPIENT || env.STATUS_EMAIL_RECIPIENT;
+    const parsedRecipients = rawRecipients
+        ? String(rawRecipients)
+            .split(/[;,\n]/)
+            .map(s => s.trim())
+            .filter(Boolean)
+        : [];
+    const recipients = Array.from(new Map(parsedRecipients.map(e => [e.toLowerCase(), e])).values());
 
     if (!env.RESEND_API_KEY) {
         console.warn('⚠️  Skipping run summary email: RESEND_API_KEY not configured');
         return;
     }
 
-    if (!recipient) {
+    if (!recipients.length) {
         console.warn('⚠️  Skipping run summary email: no recipient configured');
         return;
     }
 
     try {
-        await sendRunSummaryEmail(env.RESEND_API_KEY, summary, recipient, {
+        await sendRunSummaryEmail(env.RESEND_API_KEY, summary, recipients, {
             from: env.SUMMARY_EMAIL_FROM || 'alerts@ravishankars.com'
         });
-        console.log(`📬 Run summary email sent to ${recipient}`);
+        console.log(`📬 Run summary email sent to: ${recipients.join(', ')}`);
     } catch (error) {
         console.error('❌ Failed to send run summary email:', error);
     }

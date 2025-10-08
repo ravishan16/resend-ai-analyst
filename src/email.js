@@ -103,15 +103,37 @@ export function previewEmailTemplate(content, marketContext) {
 }
 
 /**
- * Send a post-run summary email to the maintainer.
+ * Send a post-run summary email to one or more recipients.
+ * @param {string} apiKey - Resend API key
+ * @param {object} summary - Pipeline run summary
+ * @param {string|string[]} recipientEmails - Single email or an array of emails
+ * @param {object} [options]
  */
-export async function sendRunSummaryEmail(apiKey, summary, recipientEmail, options = {}) {
+export async function sendRunSummaryEmail(apiKey, summary, recipientEmails, options = {}) {
     if (!apiKey) {
         throw new Error('RESEND_API_KEY is required to send summary emails');
     }
 
-    if (!recipientEmail) {
+    if (!recipientEmails) {
         throw new Error('Recipient email is required for run summary notifications');
+    }
+
+    let toList;
+    if (Array.isArray(recipientEmails)) {
+        toList = recipientEmails.filter(Boolean).map(v => String(v).trim()).filter(v => v.length > 0);
+    } else if (typeof recipientEmails === 'string') {
+        toList = recipientEmails
+            .split(/[;,\n]/)
+            .map(v => v.trim())
+            .filter(v => v.length > 0);
+    } else {
+        toList = [];
+    }
+
+    const uniqueList = Array.from(new Map(toList.map(e => [e.toLowerCase(), e])).values());
+
+    if (!uniqueList.length) {
+        throw new Error('No valid recipient emails provided for run summary notifications');
     }
 
     const resend = new Resend(apiKey);
@@ -126,7 +148,7 @@ export async function sendRunSummaryEmail(apiKey, summary, recipientEmail, optio
 
     const { data, error } = await resend.emails.send({
         from,
-        to: recipientEmail,
+        to: uniqueList,
         subject,
         html: htmlBody,
         text: textBody

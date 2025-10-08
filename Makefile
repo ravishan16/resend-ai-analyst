@@ -34,6 +34,10 @@ test-email:
 	@echo "📧 Testing email template and delivery..."
 	@node -r dotenv/config src/cli.js email
 
+test-summary-email:
+	@echo "📧 Sending test run summary email..."
+	@RECIPIENTS="$(RECIPIENTS)" node -r dotenv/config src/cli.js summary-email
+
 test-scoring:
 	@echo "🎯 Testing opportunity scoring algorithm..."
 	@node -r dotenv/config src/cli.js scoring
