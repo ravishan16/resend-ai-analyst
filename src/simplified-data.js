@@ -15,8 +15,8 @@
  * data as final fallback. Features intelligent caching to reduce API calls by ~80% during
  * bulk operations.
  */
-// Added for Issue: Fix 52-week range and add ticker hyperlinks to newsletter #16
-import fetch from "node-fetch";
+// Note: Use the global fetch provided by the runtime (Node 18+/Workers)
+// Avoid importing node-fetch so tests can mock global fetch reliably.
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 
@@ -35,7 +35,7 @@ const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(url, options);
+      const response = await globalThis.fetch(url, options);
       if (!response.ok)
         throw new Error(`Fetch failed (status ${response.status})`);
       const data = await response.json(); // consume body only once
@@ -60,11 +60,8 @@ async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
  * @throws Will throw an error if the Finnhub API key is not set,
  *         if the response is invalid, or if 52-week data is missing.
  */
-async function get52WeekRange(symbol, apiKey) {
+async function get52WeekRange(symbol) {
   if (!FINNHUB_API_KEY) throw new Error("Finnhub API key not set");
-  if (!apiKey) {
-    throw new Error("Finnhub API key not set"); 
-  }
 
   const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${FINNHUB_API_KEY}`;
 
@@ -150,31 +147,29 @@ class SimplifiedDataProvider {
       console.warn(`⚠️ Yahoo quote failed for ${symbol}:`, error.message);
     }
 
-    // Finnhub fallback only if Yahoo fails (rare)
-    if (this.finnhubApiKey) {
-      try {
-        const quote = await this.getFinnhubQuote(symbol);
-        if (quote && quote.price > 0) {
-          const result = {
-            symbol: quote.symbol,
-            price: quote.price,
-            change: quote.change,
-            changePercent: quote.changePercent,
-            previousClose: quote.previousClose,
-            source: "finnhub",
-          };
+    // Finnhub fallback (attempt even if API key missing; will fail gracefully under catch)
+    try {
+      const quote = await this.getFinnhubQuote(symbol);
+      if (quote && quote.price > 0) {
+        const result = {
+          symbol: quote.symbol,
+          price: quote.price,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          previousClose: quote.previousClose,
+          source: "finnhub",
+        };
 
-          // Cache fallback data too
-          this.quoteCache.set(cacheKey, {
-            data: result,
-            timestamp: Date.now(),
-          });
+        // Cache fallback data too
+        this.quoteCache.set(cacheKey, {
+          data: result,
+          timestamp: Date.now(),
+        });
 
-          return result;
-        }
-      } catch (error) {
-        console.warn(`⚠️ Finnhub quote failed for ${symbol}:`, error.message);
+        return result;
       }
+    } catch (error) {
+      console.warn(`⚠️ Finnhub quote failed for ${symbol}:`, error.message);
     }
 
     throw new Error(`Unable to fetch quote for ${symbol}`);
@@ -208,7 +203,7 @@ class SimplifiedDataProvider {
   async getYahooQuote(symbol) {
     const url = `${this.yahooEndpoint}${symbol}`;
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       headers: {
         "User-Agent": this.userAgent,
       },
@@ -261,7 +256,7 @@ class SimplifiedDataProvider {
 
     const url = `${this.yahooEndpoint}${symbol}?period1=${startDate}&period2=${endDate}&interval=1d`;
 
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       headers: {
         "User-Agent": this.userAgent,
       },
@@ -319,7 +314,7 @@ class SimplifiedDataProvider {
    */
   async getFinnhubQuote(symbol) {
     const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${this.finnhubApiKey}`;
-    const response = await fetch(url);
+    const response = await globalThis.fetch(url);
 
     if (!response.ok) {
       throw new Error(`Finnhub API error: ${response.status}`);
@@ -422,7 +417,7 @@ class SimplifiedDataProvider {
     let fiftyTwoWeekLow = null;
 
     try {
-      const range = await get52WeekRange(symbol, this.finnhubApiKey);
+      const range = await get52WeekRange(symbol);
       fiftyTwoWeekHigh = range.high;
       fiftyTwoWeekLow = range.low;
       // Print the values right after assignment
