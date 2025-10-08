@@ -6,7 +6,7 @@ dev:
 
 deploy:
 	@echo "🚀 Deploying to Cloudflare Workers..."
-	@wrangler deploy
+	@node validate-config.js && wrangler deploy
 
 deploy-pages:
 	@echo "🌐 Deploying signup site to Cloudflare Pages..."

@@ -103,6 +103,35 @@ for (const configFile of CONFIG_FILES) {
                 if (!wrangler.includes('compatibility_date')) {
                     console.log(`   ⚠️  Missing compatibility_date`);
                 }
+
+                // Security check: Ensure no sensitive keys are bound in [vars]
+                const sensitive = [
+                    'FINNHUB_API_KEY',
+                    'ALPHA_VANTAGE_API_KEY',
+                    'GEMINI_API_KEY',
+                    'RESEND_API_KEY',
+                    'AUDIENCE_ID',
+                    'SUMMARY_EMAIL_RECIPIENT',
+                    'SUMMARY_EMAIL_FROM',
+                    'TRIGGER_AUTH_SECRET'
+                ];
+                const hasVarsSection = /\n\[vars\]/.test(wrangler);
+                if (hasVarsSection) {
+                    const varsSection = wrangler.split(/\n\[vars\]/)[1] || '';
+                    const violations = sensitive.filter(k => new RegExp(`^${k}\s*=`, 'm').test(varsSection));
+                    if (violations.length) {
+                        console.log(`   ❌ Sensitive keys found in [vars]: ${violations.join(', ')}`);
+                        console.log('      Move these to Cloudflare Secrets using: wrangler secret put <NAME>');
+                        hasErrors = true;
+                    }
+                    // Additionally, block template placeholders like {{ KEY }} which can overwrite secrets
+                    const templateLeak = varsSection.match(/\{\{\s*[A-Z0-9_]+\s*\}\}/g);
+                    if (templateLeak) {
+                        console.log(`   ❌ Template placeholders found in [vars]: ${[...new Set(templateLeak)].join(', ')}`);
+                        console.log('      Remove placeholders and rely on Secrets to prevent plaintext overwrites.');
+                        hasErrors = true;
+                    }
+                }
             }
         } catch (error) {
             console.log(`   ❌ Invalid JSON/TOML format: ${error.message}`);
