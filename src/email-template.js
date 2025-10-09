@@ -108,7 +108,7 @@ const EmailTemplate = ({
                   ${opp.qualityScore || "N/A"}/100
                 </td>
                 <td style="padding: 4px 8px 4px 0; font-weight: 500;">Vol Status:</td>
-              <td style="padding: 4px 0; color: ${vol.impliedVolatility && vol.historicalVolatility && vol.impliedVolatility > vol.historicalVolatility ? palette.primaryDark : palette.muted}; font-weight: 500;">
+                <td style="padding: 4px 0; color: ${vol.impliedVolatility && vol.historicalVolatility && vol.impliedVolatility > vol.historicalVolatility ? palette.primaryDark : palette.muted}; font-weight: 500;">
                 ${
                   // Issue #22: Clarify Volatility Regime - Explicitly state IV vs HV
                   vol.impliedVolatility && vol.historicalVolatility
