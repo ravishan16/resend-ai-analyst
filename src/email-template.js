@@ -114,7 +114,7 @@ const EmailTemplate = ({
                   vol.impliedVolatility && vol.historicalVolatility
                     ? vol.impliedVolatility > vol.historicalVolatility
                       ? "High (IV > HV)"
-                      : "Normal (IV < HV)"
+                      : "Normal (IV <= HV)"
                     : "N/A"
                 }
               </td>
