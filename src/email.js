@@ -28,10 +28,15 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
         
         const resend = new Resend(apiKey);
         const today = new Date().toDateString();
-        const from = options.from;
+        
+        // --- FIX: Check options.from first, then fallback to process.env.NEWSLETTER_FROM_EMAIL for local CLI runs ---
+        const from = options.from || process.env.NEWSLETTER_FROM_EMAIL;
+        
         if (!from) {
             throw new Error('Newsletter sender email (from) is required. Set NEWSLETTER_FROM_EMAIL environment variable.');
         }
+        // -------------------------------------------------------------------------------------------------------------
+        
         const opportunityCount = options.opportunityCount ?? (content?.length || 0);
         const subjectTag = options.subjectTag || `${opportunityCount} ${opportunityCount === 1 ? 'Opportunity' : 'Opportunities'}`;
 
@@ -597,5 +602,4 @@ export async function removeSubscriber(email, environment) {
         };
     }
 }
-
 // removeSubscriber is already exported with the correct signature from the function above

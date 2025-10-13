@@ -32,7 +32,7 @@ test-gemini:
 
 test-email:
 	@echo "📧 Testing email template and delivery..."
-	@node -r dotenv/config src/cli.js email
+	@NEWSLETTER_FROM_EMAIL=$(NEWSLETTER_FROM_EMAIL) node -r dotenv/config src/cli.js email
 
 test-summary-email:
 	@echo "📧 Sending test run summary email..."
@@ -153,29 +153,29 @@ install:
 # Help
 help:
 	@echo "🔧 Available commands:"
-	@echo "  dev              - Start local development server"
-	@echo "  deploy           - Deploy to production"
-	@echo "  deploy-pages     - Deploy the Cloudflare Pages signup site"
+	@echo "	dev              - Start local development server"
+	@echo "	deploy           - Deploy to production"
+	@echo "	deploy-pages     - Deploy the Cloudflare Pages signup site"
 	@echo ""
 	@echo "🧪 Testing:"
-	@echo "  test-finnhub     - Test earnings data fetching"
-	@echo "  test-alphavantage - Test stock prices & volatility data"
-	@echo "  test-volatility  - Test volatility analysis"
-	@echo "  test-gemini      - Test AI analysis"
-	@echo "  test-email       - Test email template"
-	@echo "  test-pipeline    - Test complete pipeline"
-	@echo "  test-full-run    - Simulate daily run"
+	@echo "	test-finnhub     - Test earnings data fetching"
+	@echo "	test-alphavantage - Test stock prices & volatility data"
+	@echo "	test-volatility  - Test volatility analysis"
+	@echo "	test-gemini      - Test AI analysis"
+	@echo "	test-email       - Test email template"
+	@echo "	test-pipeline    - Test complete pipeline"
+	@echo "	test-full-run    - Simulate daily run"
 	@echo ""
 	@echo "🔍 Debugging:"
-	@echo "  debug-run        - Run with debug output"
-	@echo "  preview-email    - Preview email template"
-	@echo "  test-stock SYMBOL=AAPL - Test specific stock"
-	@echo "  validate-keys    - Check API key validity"
+	@echo "	debug-run        - Run with debug output"
+	@echo "	preview-email    - Preview email template"
+	@echo "	test-stock SYMBOL=AAPL - Test specific stock"
+	@echo "	validate-keys    - Check API key validity"
 	@echo ""
 	@echo "🚀 Production:"
-	@echo "  push-secrets     - Push API keys to Cloudflare"
-	@echo "  verify-deployment - Check production health"
-	@echo "  trigger-production - Manually trigger newsletter"
-	@echo "  logs             - View deployment logs"
+	@echo "	push-secrets     - Push API keys to Cloudflare"
+	@echo "	verify-deployment - Check production health"
+	@echo "	trigger-production - Manually trigger newsletter"
+	@echo "	logs             - View deployment logs"
 
 .PHONY: dev deploy test-finnhub test-alphavantage test-volatility test-gemini test-email test-scoring test-pipeline test-full-run preview-email debug-run push-secrets verify-deployment trigger-production logs validate-keys benchmark clean install help
