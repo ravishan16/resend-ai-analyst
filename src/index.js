@@ -330,7 +330,8 @@ async function processAndSendDigest(env) {
 
             beginStep('Send newsletter');
             const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
-                from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com',
+                from: env.NEWSLETTER_FROM_EMAIL,
+                unsubscribeEmail: env.UNSUBSCRIBE_EMAIL,
                 subjectTag: 'No Screened Setups',
                 opportunityCount: 0
             });
@@ -389,7 +390,8 @@ async function processAndSendDigest(env) {
 
             beginStep('Send newsletter');
             const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, [], contextPayload, {
-                from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com',
+                from: env.NEWSLETTER_FROM_EMAIL,
+                unsubscribeEmail: env.UNSUBSCRIBE_EMAIL,
                 subjectTag: 'Quality Gate Hold',
                 opportunityCount: 0
             });
@@ -413,7 +415,8 @@ async function processAndSendDigest(env) {
         beginStep('Send newsletter');
         console.log("📧 Step 4: Sending newsletter...");
         const result = await sendEmailDigest(RESEND_API_KEY, AUDIENCE_ID, validatedContent, marketContext, {
-            from: env.NEWSLETTER_FROM || env.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com',
+            from: env.NEWSLETTER_FROM_EMAIL,
+            unsubscribeEmail: env.UNSUBSCRIBE_EMAIL,
             opportunityCount: validatedContent.length
         });
         summary.metrics.newsletterSent = true;
@@ -453,6 +456,11 @@ async function deliverRunSummary(env, summary) {
         return;
     }
 
+    if (!env.SUMMARY_EMAIL_FROM) {
+        console.warn('⚠️  Skipping run summary email: SUMMARY_EMAIL_FROM not configured');
+        return;
+    }
+
     if (!recipients.length) {
         console.warn('⚠️  Skipping run summary email: no recipient configured');
         return;
@@ -460,7 +468,7 @@ async function deliverRunSummary(env, summary) {
 
     try {
         await sendRunSummaryEmail(env.RESEND_API_KEY, summary, recipients, {
-            from: env.SUMMARY_EMAIL_FROM || 'alerts@ravishankars.com'
+            from: env.SUMMARY_EMAIL_FROM
         });
         console.log(`📬 Run summary email sent to: ${recipients.join(', ')}`);
     } catch (error) {
@@ -536,8 +544,8 @@ function getAllowedOrigins(env) {
         return fromEnv.split(',').map(origin => origin.trim()).filter(Boolean);
     }
 
+    // Default to Pages.dev and localhost for development if no origins configured
     return [
-        'https://options-insight.ravishankars.com',
         'https://options-insight.pages.dev',
         'https://optionsinsight.pages.dev',
         'https://options-insight-signup.pages.dev',

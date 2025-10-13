@@ -28,7 +28,14 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
         
         const resend = new Resend(apiKey);
         const today = new Date().toDateString();
-        const from = options.from || 'newsletter@ravishankars.com';
+        
+        // Use options.from or fallback to process.env.NEWSLETTER_FROM_EMAIL
+        const from = options.from || process.env.NEWSLETTER_FROM_EMAIL;
+        
+        if (!from) {
+            throw new Error('Newsletter sender email (from) is required. Set NEWSLETTER_FROM_EMAIL environment variable.');
+        }
+        
         const opportunityCount = options.opportunityCount ?? (content?.length || 0);
         const subjectTag = options.subjectTag || `${opportunityCount} ${opportunityCount === 1 ? 'Opportunity' : 'Opportunities'}`;
 
@@ -46,16 +53,21 @@ export async function sendEmailDigest(apiKey, audienceId, content, marketContext
         const reactContent = htmlToReactEmail(htmlContent);
 
         console.log("Creating broadcast draft with React Email template...");
+        const unsubscribeEmail = options.unsubscribeEmail;
         const broadcastPayload = {
             from,
             audienceId: audienceId,
             subject: `🎯 Options Insight - ${today} (${subjectTag})`,
             html: htmlContent,
             headers: {
-                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-                'List-Unsubscribe': '<mailto:unsubscribe@ravishankars.com?subject=unsubscribe>'
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
             }
         };
+
+        // Add List-Unsubscribe header if unsubscribe email is provided
+        if (unsubscribeEmail) {
+            broadcastPayload.headers['List-Unsubscribe'] = `<mailto:${unsubscribeEmail}?subject=unsubscribe>`;
+        }
 
         if (reactContent) {
             broadcastPayload.react = reactContent;
@@ -141,7 +153,10 @@ export async function sendRunSummaryEmail(apiKey, summary, recipientEmails, opti
     const startedAt = formatDate(summary.startedAt);
     const finishedAt = formatDate(summary.finishedAt);
     const subject = `${statusEmoji} Options Insight Run Summary (${startedAt})`;
-    const from = options.from || 'alerts@ravishankars.com';
+    const from = options.from;
+    if (!from) {
+        throw new Error('Summary email sender address (from) is required. Set SUMMARY_EMAIL_FROM environment variable.');
+    }
 
     const htmlBody = buildSummaryHtml(summary, { startedAt, finishedAt, statusEmoji });
     const textBody = buildSummaryText(summary, { startedAt, finishedAt, statusEmoji });
@@ -445,7 +460,7 @@ export async function sendNewsletter(newsletter, environment) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                from: environment.NEWSLETTER_FROM_EMAIL || 'newsletter@ravishankars.com',
+                from: environment.NEWSLETTER_FROM_EMAIL,
                 to: [`audience:${environment.RESEND_AUDIENCE_ID}`],
                 subject: newsletter.subject,
                 html: newsletter.html
@@ -586,5 +601,4 @@ export async function removeSubscriber(email, environment) {
         };
     }
 }
-
 // removeSubscriber is already exported with the correct signature from the function above
